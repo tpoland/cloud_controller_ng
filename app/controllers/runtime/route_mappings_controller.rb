@@ -47,8 +47,6 @@ module VCAP::CloudController
       ]
     rescue ::VCAP::CloudController::V2::RouteMappingCreate::DuplicateRouteMapping
       raise CloudController::Errors::ApiError.new_from_details('RouteMappingTaken', route_mapping_taken_message(request_attrs))
-    rescue ::VCAP::CloudController::V2::RouteMappingCreate::UnavailableAppPort
-      raise CloudController::Errors::ApiError.new_from_details('RoutePortNotEnabledOnApp')
     rescue ::VCAP::CloudController::V2::RouteMappingCreate::RoutingApiDisabledError
       raise CloudController::Errors::ApiError.new_from_details('RoutingApiDisabled')
     rescue ::VCAP::CloudController::V2::RouteMappingCreate::SpaceMismatch => e

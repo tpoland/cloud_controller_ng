@@ -102,7 +102,7 @@ RSpec.describe 'Apps' do
     context 'with inline-relations-depth' do
       it 'includes related records' do
         route = VCAP::CloudController::Route.make(space: space)
-        VCAP::CloudController::RouteMappingModel.make(app: process.app, route: route, process_type: process.type)
+        VCAP::CloudController::RouteMappingModel.make(app: process.app, route: route, process_type: process.type, app_port: 1111)
         service_binding = VCAP::CloudController::ServiceBinding.make(app: process.app, service_instance: VCAP::CloudController::ManagedServiceInstance.make(space: space))
 
         get '/v2/apps?inline-relations-depth=1', nil, headers_for(user)
@@ -155,7 +155,7 @@ RSpec.describe 'Apps' do
                 'package_updated_at'         => iso8601,
                 'detected_start_command'     => '',
                 'enable_ssh'                 => true,
-                'ports'                      => [8080],
+                'ports'                      => [8080, 1111],
                 'space_url'                  => "/v2/spaces/#{space.guid}",
                 'space'                      => {
                   'metadata' => {
@@ -1460,7 +1460,7 @@ RSpec.describe 'Apps' do
                 'updated_at' => iso8601
               },
               'entity' => {
-                'app_port'   => nil,
+                'app_port'   => 8080,
                 'app_guid'   => process.guid,
                 'route_guid' => route.guid,
                 'app_url'    => "/v2/apps/#{process.guid}",

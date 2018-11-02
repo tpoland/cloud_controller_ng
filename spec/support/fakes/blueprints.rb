@@ -530,7 +530,7 @@ module VCAP::CloudController
     app { AppModel.make }
     route { Route.make(space: app.space) }
     process_type { 'web' }
-    app_port { -1 }
+    app_port { 8080 }
   end
 
   RequestCount.blueprint do

@@ -213,7 +213,7 @@ module VCAP::CloudController
             end
 
             it 'uses the saved docker ports' do
-              expect(message['ports']).to eq([123, 456])
+              expect(message['ports']).to eq([123, 456, 2222])
             end
           end
 
@@ -222,7 +222,7 @@ module VCAP::CloudController
               let(:type) { 'web' }
 
               it 'defaults to [8080]' do
-                expect(message['ports']).to eq([8080])
+                expect(message['ports']).to contain_exactly(8080, 2222)
               end
             end
 
@@ -230,7 +230,7 @@ module VCAP::CloudController
               let(:type) { 'other' }
 
               it 'default to []' do
-                expect(message['ports']).to eq([])
+                expect(message['ports']).to eq([2222])
               end
             end
           end

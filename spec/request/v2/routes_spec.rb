@@ -299,7 +299,7 @@ RSpec.describe 'Routes' do
                 'updated_at' => iso8601
               },
               'entity' => {
-                'app_port'   => nil,
+                'app_port'   => 8080,
                 'app_guid'   => process.guid,
                 'route_guid' => route.guid,
                 'app_url'    => "/v2/apps/#{process.guid}",

@@ -125,25 +125,8 @@ module VCAP::CloudController
 
         context 'when the process is web' do
           let(:process_type) { 'web' }
-
-          let(:process) { ProcessModel.make(diego: true, app: app, type: process_type, ports: [1234, 5678], health_check_type: 'none') }
-
-          context 'requesting available port' do
-            let(:requested_port) { 5678 }
-            it 'succeeds' do
-              mapping = route_mapping_create.add
-              expect(app.reload.routes).to eq([route])
-              expect(mapping.app_port).to eq(5678)
-            end
-          end
-
-          context 'requesting unavailable' do
-            let(:requested_port) { 8888 }
-            it 'raises' do
-              expect {
-                route_mapping_create.add
-              }.to raise_error(RouteMappingCreate::UnavailableAppPort, /8888 is not available/)
-            end
+          let(:process) do
+            ProcessModel.make(diego: true, app: app, type: process_type, ports: [1234, 5678], health_check_type: 'none')
           end
 
           context 'not requesting a port' do
@@ -167,50 +150,6 @@ module VCAP::CloudController
               expect {
                 route_mapping_create.add
               }.to raise_error(RouteMappingCreate::InvalidRouteMapping, /must be specified/)
-            end
-          end
-
-          context 'when the default web port is requested' do
-            let(:requested_port) { 8080 }
-
-            context 'when the process has an empty array of ports' do
-              let(:ports) { [] }
-              it 'raises' do
-                expect {
-                  route_mapping_create.add
-                }.to raise_error(RouteMappingCreate::UnavailableAppPort, /8080 is not available/)
-              end
-            end
-
-            context 'when the process has nil ports' do
-              let(:ports) { nil }
-              it 'raises' do
-                expect {
-                  route_mapping_create.add
-                }.to raise_error(RouteMappingCreate::UnavailableAppPort, /8080 is not available/)
-              end
-            end
-          end
-
-          context 'a non-default port is requested' do
-            let(:requested_port) { 1234 }
-
-            context 'when the process has an empty array of ports' do
-              let(:ports) { [] }
-              it 'raises' do
-                expect {
-                  route_mapping_create.add
-                }.to raise_error(RouteMappingCreate::UnavailableAppPort, /1234 is not available/)
-              end
-            end
-
-            context 'when the process has nil ports' do
-              let(:ports) { nil }
-              it 'raises' do
-                expect {
-                  route_mapping_create.add
-                }.to raise_error(RouteMappingCreate::UnavailableAppPort, /1234 is not available/)
-              end
             end
           end
         end

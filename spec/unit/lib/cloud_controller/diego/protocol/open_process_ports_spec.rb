@@ -8,9 +8,9 @@ module VCAP::CloudController
           let(:process) do
             ProcessModelFactory.make(
               command: 'start_me',
-              diego:   true,
-              type:    type,
-              ports:   ports,
+              diego: true,
+              type: type,
+              ports: ports,
               health_check_type: 'process'
             )
           end
@@ -31,6 +31,15 @@ module VCAP::CloudController
                 expect(open_ports).to eq([])
               end
             end
+
+            context 'and there are route mappings to other ports' do
+              before do
+                RouteMappingModel.make(app: process.app, app_port: 1234)
+              end
+              it 'adds those ports' do
+                expect(open_ports).to contain_exactly(1111, 2222, 1234)
+              end
+            end
           end
 
           context 'when process does not have ports defined' do
@@ -39,11 +48,11 @@ module VCAP::CloudController
             context 'when this is a docker process' do
               let(:process) do
                 ProcessModelFactory.make(
-                  docker_image:      'some-image',
-                  command:           'start_me',
-                  diego:             true,
-                  type:              type,
-                  ports:             ports,
+                  docker_image: 'some-image',
+                  command: 'start_me',
+                  diego: true,
+                  type: type,
+                  ports: ports,
                   health_check_type: 'process'
                 )
               end
@@ -55,6 +64,15 @@ module VCAP::CloudController
               it 'uses the saved docker ports' do
                 expect(open_ports).to eq([123, 456])
               end
+
+              context 'and there are route mappings to other ports' do
+                before do
+                  RouteMappingModel.make(app: process.app, app_port: 1234)
+                end
+                it 'adds those ports' do
+                  expect(open_ports).to contain_exactly(123, 456, 1234)
+                end
+              end
             end
 
             context 'when this is a buildpack process' do
@@ -64,6 +82,15 @@ module VCAP::CloudController
                 it 'defaults to [8080]' do
                   expect(open_ports).to eq([8080])
                 end
+
+                context 'and there are route mappings to other ports' do
+                  before do
+                    RouteMappingModel.make(app: process.app, app_port: 1234)
+                  end
+                  it 'adds those ports' do
+                    expect(open_ports).to eq([8080, 1234])
+                  end
+                end
               end
 
               context 'when the type is not web' do
@@ -71,6 +98,15 @@ module VCAP::CloudController
 
                 it 'default to []' do
                   expect(open_ports).to eq([])
+                end
+
+                context 'and there are route mappings to other ports' do
+                  before do
+                    RouteMappingModel.make(app: process.app, app_port: 1234, process_type: 'other')
+                  end
+                  it 'adds those ports' do
+                    expect(open_ports).to eq([1234])
+                  end
                 end
               end
             end

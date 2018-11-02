@@ -65,7 +65,7 @@ module VCAP::CloudController
           r
         end
 
-        let(:ports) { '' }
+        let(:ports) { '8080' }
         let(:expected_network) do
           ::Diego::Bbs::Models::Network.new(
             properties: [
@@ -194,8 +194,8 @@ module VCAP::CloudController
             SecurityGroup.make(guid: 'guid3', rules: [{ 'protocol' => 'tcp', 'ports' => '443', 'destination' => '0.0.0.0/0', 'log' => true }]),
           ].each { |security_group| security_group.add_space(process.space) }
 
-          RouteMappingModel.make(app: process.app, route: route_without_service, process_type: process.type, app_port: 1111)
-          RouteMappingModel.make(app: process.app, route: route_with_service, process_type: process.type, app_port: 1111)
+          RouteMappingModel.make(app: process.app, route: route_without_service, process_type: process.type, app_port: 8080)
+          RouteMappingModel.make(app: process.app, route: route_with_service, process_type: process.type, app_port: 8080)
 
           app_model.update(droplet: droplet)
           allow(VCAP::CloudController::IsolationSegmentSelector).to receive(:for_space).and_return('placement-tag')

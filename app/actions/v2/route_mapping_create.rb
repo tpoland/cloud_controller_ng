@@ -83,22 +83,7 @@ module VCAP::CloudController
 
       def validate_available_port!
         return if process.blank?
-        validate_web_port!
-        validate_non_web_port!
-      end
-
-      def validate_non_web_port!
-        return if process.web?
-        raise InvalidRouteMapping.new(NO_PORT_REQUESTED) if requested_port.nil?
-        raise_unavailable_port! unless available_ports.present? && available_ports.include?(requested_port.to_i)
-      end
-
-      def validate_web_port!
-        return unless process.web?
-        return if requested_port.nil?
-        return if process.docker?
-
-        raise_unavailable_port! unless available_ports.include?(requested_port.to_i)
+        raise InvalidRouteMapping.new(NO_PORT_REQUESTED) if requested_port.nil? && !process.web?
       end
 
       def validate_space!
@@ -107,10 +92,6 @@ module VCAP::CloudController
 
       def app_event_repository
         Repositories::AppEventRepository.new
-      end
-
-      def raise_unavailable_port!
-        raise UnavailableAppPort.new(sprintf(UNAVAILABLE_APP_PORT_MESSAGE_FORMAT, port: requested_port))
       end
 
       def available_ports

@@ -250,23 +250,6 @@ module VCAP::CloudController
           end
         end
 
-        context 'and an app port not bound to the application is specified' do
-          let(:body) do
-            {
-              app_guid: process.guid,
-              route_guid: route.guid,
-              app_port: 7777
-            }.to_json
-          end
-
-          it 'returns a 400' do
-            post '/v2/route_mappings', body
-
-            expect(last_response).to have_status_code(400)
-            expect(decoded_response['description']).to include('Routes can only be mapped to ports already enabled for the application')
-          end
-        end
-
         context 'and a valid app port is specified' do
           let(:body) do
             {
