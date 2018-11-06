@@ -642,6 +642,25 @@ RSpec.describe OrganizationsV3Controller, type: :controller do
           expect(response).to have_error_message('Name is too short (minimum is 1 character)')
         end
       end
+
+      context 'when there is an valid label (but no name)' do
+      end
+
+      context 'when there is an invalid label' do
+        let(:request_body) do
+          {
+            metadata: {
+
+            }
+          }
+        end
+
+        it 'displays an informative error' do
+          patch :update, params: { guid: org.guid }.merge(request_body), as: :json
+          expect(response.status).to eq(422)
+          expect(response).to have_error_message('Name is too short (minimum is 1 character)')
+        end
+      end
     end
 
     describe 'authorization' do
