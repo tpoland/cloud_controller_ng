@@ -643,14 +643,31 @@ RSpec.describe OrganizationsV3Controller, type: :controller do
         end
       end
 
-      context 'when there is an valid label (but no name)' do
+      context 'when there is a valid label (but no name)' do
+        let(:request_body) do
+          {
+            metadata: {
+              labels: {
+                'key': 'value'
+              }
+            }
+          }
+        end
+
+        it 'displays an informative error' do
+          patch :update, params: { guid: org.guid }.merge(request_body), as: :json
+          expect(response.status).to eq(200)
+          expect(parsed_body['metadata']['labels']['key']).to eq 'value'
+        end
       end
 
       context 'when there is an invalid label' do
         let(:request_body) do
           {
             metadata: {
-
+              labels: {
+                'cloudfoundry.org/label': 'value'
+              }
             }
           }
         end
@@ -658,7 +675,7 @@ RSpec.describe OrganizationsV3Controller, type: :controller do
         it 'displays an informative error' do
           patch :update, params: { guid: org.guid }.merge(request_body), as: :json
           expect(response.status).to eq(422)
-          expect(response).to have_error_message('Name is too short (minimum is 1 character)')
+          expect(response).to have_error_message('Metadata cloudfoundry.org is a reserved domain')
         end
       end
     end
