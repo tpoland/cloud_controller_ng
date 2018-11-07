@@ -10,10 +10,12 @@ module VCAP::CloudController
       let!(:deployment2) { DeploymentModel.make }
 
       it 'deletes and cancels the deployment record' do
+        revision = RevisionModel.make(deployment: deployment)
         deployment_delete.delete([deployment, deployment2])
 
         expect(deployment.exists?).to eq(false), 'Expected deployment to not exist, but it does'
         expect(deployment2.exists?).to eq(false), 'Expected deployment2 to not exist, but it does'
+        expect(revision.exists?).to eq(false), 'Expected revision to not exist, but it does'
       end
     end
   end

@@ -13,10 +13,12 @@ module VCAP::CloudController::Presenters::V3
 
     describe '#to_hash' do
       it 'presents the deployment as json' do
+        revision = VCAP::CloudController::RevisionModel.make(deployment: deployment)
         result = DeploymentPresenter.new(deployment).to_hash
         expect(result[:guid]).to eq(deployment.guid)
         expect(result[:state]).to eq(VCAP::CloudController::DeploymentModel::DEPLOYING_STATE)
         expect(result[:droplet][:guid]).to eq(droplet.guid)
+        expect(result[:revision][:guid]).to eq(revision.guid)
         expect(result[:previous_droplet][:guid]).to eq(previous_droplet.guid)
 
         expect(result[:relationships][:app][:data][:guid]).to eq(deployment.app.guid)
@@ -28,6 +30,11 @@ module VCAP::CloudController::Presenters::V3
       it 'includes new_processes' do
         result = DeploymentPresenter.new(deployment).to_hash
         expect(result[:new_processes]).to eq([{ guid: process.guid, type: process.type }])
+      end
+
+      it 'presents nil revision when there is none' do
+        result = DeploymentPresenter.new(deployment).to_hash
+        expect(result[:revision]).to be_nil
       end
 
       context 'when the deploying web process has been destroyed by a later deployment' do
