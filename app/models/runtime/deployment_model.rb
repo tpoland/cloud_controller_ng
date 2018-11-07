@@ -37,7 +37,12 @@ module VCAP::CloudController
       primary_key: :guid,
       without_guid_generation: true
 
-    add_association_dependencies historical_related_processes: :delete
+    one_to_one :revision,
+      class: 'VCAP::CloudController::RevisionModel',
+      key: :deployment_guid,
+      primary_key: :guid
+
+    add_association_dependencies historical_related_processes: :delete, revision: :delete
 
     dataset_module do
       def deploying_count

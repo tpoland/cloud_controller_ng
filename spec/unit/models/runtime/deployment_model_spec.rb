@@ -19,6 +19,11 @@ module VCAP::CloudController
       expect(deployment.deploying_web_process).to eq(deploying_web_process)
     end
 
+    it 'has a revision' do
+      revision = RevisionModel.make(deployment: deployment)
+      expect(deployment.revision).to eq(revision)
+    end
+
     context '#processes' do
       before do
         DeploymentProcessModel.make(
@@ -92,12 +97,13 @@ module VCAP::CloudController
         DeploymentProcessModel.make(
           deployment: DeploymentModel.make
         )
+        RevisionModel.make(deployment: deployment)
       end
 
       it 'deletes any associated historical DeploymentProcessModels' do
         expect {
           deployment.destroy
-        }.to change { DeploymentProcessModel.count }.from(3).to(1)
+        }.to change { [DeploymentProcessModel.count, RevisionModel.count] }.from([3, 1]).to([1, 0])
       end
     end
   end
