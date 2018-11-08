@@ -39,8 +39,9 @@ module VCAP::CloudController
           expect(app.droplet).to eq(next_droplet)
         end
 
-        it 'creates a revision and sets it to the deloyment' do
+        it 'creates a revision and sets it to the deployment and gives the revision a version field' do
           deployment = nil
+          previous_revision_version = app.current_revision_version
           expect {
             deployment = DeploymentCreate.create(app: app, droplet: next_droplet, user_audit_info: user_audit_info)
           }.to change { RevisionModel.count }.by(1)
@@ -48,6 +49,24 @@ module VCAP::CloudController
           revision = RevisionModel.last
           expect(deployment.revision.guid).to eq(revision.guid)
           expect(revision.deployment.guid).to eq(deployment.guid)
+          expect(revision.version).to eq(previous_revision_version + 1)
+          expect(app.reload.current_revision_version).to eq(previous_revision_version + 1)
+        end
+
+        it 'increments the revision on an app when a deployment is created' do
+          deployment1 = DeploymentCreate.create(app: app, droplet: next_droplet, user_audit_info: user_audit_info)
+          revision1 = deployment1.revision
+          new_droplet = VCAP::CloudController::DropletModel.make(app: app, process_types: { 'web' => '12345' })
+          deployment2 = DeploymentCreate.create(app: app, droplet: new_droplet, user_audit_info: user_audit_info)
+          revision2 = deployment2.revision
+          expect(revision2.version).to eq(revision1.version + 1)
+        end
+
+        it 'overflows the version number and resets to 1' do
+          app.update(current_revision_version: 9999)
+          deployment = DeploymentCreate.create(app: app, droplet: next_droplet, user_audit_info: user_audit_info)
+          expect(deployment.revision.version).to eq(1)
+          expect(app.reload.current_revision_version).to eq(1)
         end
 
         it 'creates a process of web-deployment-guid type with the same characteristics as the existing web process' do

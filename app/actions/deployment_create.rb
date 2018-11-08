@@ -40,12 +40,22 @@ module VCAP::CloudController
           deployment.update(deploying_web_process: process)
           web_process.routes.each { |r| RouteMappingCreate.add(user_audit_info, r, process) }
           deployment.update(revision: RevisionModel.create)
+          set_version(app, deployment.revision)
         end
         record_audit_event(deployment, droplet, user_audit_info)
         deployment
       end
 
       private
+
+      def set_version(app, revision)
+        app.update(current_revision_version: app.current_revision_version + 1)
+        revision.update(version: app.current_revision_version)
+        if (revision.version > 9999)
+          revision.update(version: 1)
+          app.update(current_revision_version: 1)
+        end
+      end
 
       def create_deployment_process(app, deployment_guid, web_process)
         process_type = "web-deployment-#{deployment_guid}"

@@ -19,6 +19,7 @@ module VCAP::CloudController::Presenters::V3
         expect(result[:state]).to eq(VCAP::CloudController::DeploymentModel::DEPLOYING_STATE)
         expect(result[:droplet][:guid]).to eq(droplet.guid)
         expect(result[:revision][:guid]).to eq(revision.guid)
+        expect(result[:revision][:version]).to eq(app.reload.current_revision_version)
         expect(result[:previous_droplet][:guid]).to eq(previous_droplet.guid)
 
         expect(result[:relationships][:app][:data][:guid]).to eq(deployment.app.guid)
