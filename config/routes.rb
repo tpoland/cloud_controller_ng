@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   patch '/apps/:guid/relationships/current_droplet', to: 'apps_v3#assign_current_droplet'
   get '/apps/:guid/relationships/current_droplet', to: 'apps_v3#current_droplet_relationship'
   get '/apps/:guid/droplets/current', to: 'apps_v3#current_droplet'
+  get '/apps/:guid/revisions/:revision_guid', to: 'apps_v3#revision'
 
   # app features
   get '/apps/:app_guid/features', to: 'app_features#index'
@@ -137,4 +138,5 @@ Rails.application.routes.draw do
   get '/service_instances/:service_instance_guid/relationships/shared_spaces', to: 'service_instances_v3#relationships_shared_spaces'
   post '/service_instances/:service_instance_guid/relationships/shared_spaces', to: 'service_instances_v3#share_service_instance'
   delete '/service_instances/:service_instance_guid/relationships/shared_spaces/:space_guid', to: 'service_instances_v3#unshare_service_instance'
+
 end

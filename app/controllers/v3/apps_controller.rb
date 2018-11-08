@@ -278,6 +278,16 @@ class AppsV3Controller < ApplicationController
     render status: :ok, json: Presenters::V3::DropletPresenter.new(droplet)
   end
 
+  def revision
+    app, space, org = AppFetcher.new.fetch(hashed_params[:guid])
+    app_not_found! unless app && permission_queryer.can_read_from_space?(space.guid, org.guid)
+
+    revision = RevisionModel.find(guid: hashed_params[:revision_guid])
+    resource_not_found!(:revision) unless revision && revision.deployment.app_guid == app.guid
+
+    render status: :ok, json: {}
+  end
+
   class DeleteAppErrorTranslatorJob < VCAP::CloudController::Jobs::ErrorTranslatorJob
     include V3ErrorsHelper
 
