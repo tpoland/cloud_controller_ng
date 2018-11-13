@@ -49,7 +49,8 @@ RSpec.describe 'Deployments' do
             'type' => deployment.deploying_web_process.type
           }],
           'revision' => {
-            'guid' => deployment.deploying_web_process.revision_guid
+            'guid' => deployment.deploying_web_process.revision_guid,
+            'version' => 1,
           },
           'created_at' => iso8601,
           'updated_at' => iso8601,
@@ -110,7 +111,8 @@ RSpec.describe 'Deployments' do
             'type' => deployment.deploying_web_process.type
           }],
           'revision' => {
-            'guid' => deployment.deploying_web_process.revision_guid
+            'guid' => deployment.deploying_web_process.revision_guid,
+            'version' => 1,
           },
           'created_at' => iso8601,
           'updated_at' => iso8601,
@@ -163,6 +165,58 @@ RSpec.describe 'Deployments' do
           'type' => deployment.deploying_web_process.type
         }],
         'revision' => nil,
+        'created_at' => iso8601,
+        'updated_at' => iso8601,
+        'relationships' => {
+          'app' => {
+            'data' => {
+              'guid' => app_model.guid
+            }
+          }
+        },
+        'links' => {
+          'self' => {
+            'href' => "#{link_prefix}/v3/deployments/#{deployment.guid}"
+          },
+          'app' => {
+            'href' => "#{link_prefix}/v3/apps/#{app_model.guid}"
+          }
+        }
+      })
+    end
+
+    it 'should continue to display the revision associated with the deployment even after the revision is deleted' do
+      revision = VCAP::CloudController::RevisionModel.make(app: app_model)
+      deployment = VCAP::CloudController::DeploymentModelTestFactory.make(
+        state: 'DEPLOYING',
+        app: app_model,
+        droplet: droplet,
+        previous_droplet: old_droplet,
+        revision: revision
+      )
+      revision.delete
+
+      get "/v3/deployments/#{deployment.guid}", nil, user_header
+      expect(last_response.status).to eq(200)
+
+      parsed_response = MultiJson.load(last_response.body)
+      expect(parsed_response).to be_a_response_like({
+        'guid' => deployment.guid,
+        'state' => 'DEPLOYING',
+        'droplet' => {
+          'guid' => droplet.guid
+        },
+        'previous_droplet' => {
+          'guid' => old_droplet.guid
+        },
+        'new_processes' => [{
+          'guid' => deployment.deploying_web_process.guid,
+          'type' => deployment.deploying_web_process.type
+        }],
+        'revision' => {
+          'guid' => revision.guid,
+          'version' => revision.version
+        },
         'created_at' => iso8601,
         'updated_at' => iso8601,
         'relationships' => {
