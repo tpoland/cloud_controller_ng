@@ -48,11 +48,18 @@ RSpec.describe StacksController, type: :controller do
 
       it 'renders a paginated list of stacks' do
         set_current_user(user)
-
         get :index
 
         expect(parsed_body['resources'].first['guid']).to eq(stack1.guid)
         expect(parsed_body['resources'].second['guid']).to eq(stack2.guid)
+      end
+
+      it 'renders a name filtered list of stacks' do
+        set_current_user(user)
+        get :index, params: { names: stack2.name }
+
+        expect(parsed_body['resources'].length).to eq 1
+        expect(parsed_body['resources'].first['guid']).to eq(stack2.guid)
       end
 
       context 'when the query params are invalid' do
