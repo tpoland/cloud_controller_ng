@@ -326,7 +326,8 @@ module VCAP::CloudController
             optional(:client_ca_file) => String,
             optional(:client_key_file) => String,
             optional(:client_chain_file) => String,
-          }
+          },
+          internal_route_vip_range: String,
         }
       end
       # rubocop:enable Metrics/BlockLength
