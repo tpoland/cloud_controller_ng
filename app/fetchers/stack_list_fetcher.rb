@@ -7,6 +7,7 @@ module VCAP::CloudController
       dataset = Stack.dataset
       filter(message, dataset)
     end
+
     def filter(message, dataset)
       if message.requested?(:names)
         dataset = dataset.where(name: message.names)
