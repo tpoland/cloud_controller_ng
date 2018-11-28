@@ -5,6 +5,8 @@ module VCAP::CloudController
   class Route < Sequel::Model
     class InvalidOrganizationRelation < CloudController::Errors::InvalidRelation; end
 
+    class OutOfVIPException < CloudController::Errors::InvalidRelation; end
+
     many_to_one :domain
     many_to_one :space, after_set: :validate_changed_space
 
@@ -86,6 +88,7 @@ module VCAP::CloudController
       validate_ports
       validate_total_reserved_route_ports if port && port > 0
       errors.add(:host, :domain_conflict) if domains_match?
+      errors.add(:name, :vip_offset) if vip_offset_exceeds_range?
 
       RouteValidator.new(self).validate
     rescue RoutingApi::UaaUnavailable
@@ -178,9 +181,39 @@ module VCAP::CloudController
 
     private
 
+    def vip_offset_exceeds_range?
+      return false if vip_offset.nil?
+      len = internal_route_vip_range_len
+      vip_offset > len || vip_offset < 0
+    end
+
     def before_destroy
       destroy_route_bindings
       super
+    end
+
+    def before_save
+      if internal? && vip_offset.nil?
+        len = internal_route_vip_range_len
+        raise OutOfVIPException.new('out of vip_offset slots') if self.class.exclude(vip_offset: nil).count >= len
+
+        proposed_offset = self.class.max(:vip_offset) + 1
+        if proposed_offset >= len
+          loop do
+            proposed_offset = rand(len)
+            break if self.class.where(vip_offset: proposed_offset).count == 0
+          end
+        end
+
+        self.vip_offset = proposed_offset
+      end
+    end
+
+    def internal_route_vip_range_len
+      @internal_route_vip_range ||= begin
+        internal_route_vip_range = Config.config.get(:internal_route_vip_range)
+        NetAddr::IPv4Net.parse(internal_route_vip_range).len
+      end
     end
 
     def destroy_route_bindings
