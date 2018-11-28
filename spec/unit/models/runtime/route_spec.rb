@@ -1253,9 +1253,8 @@ module VCAP::CloudController
 
       context 'when we assign vip_offsets explicitly' do
         let(:internal_domain) { SharedDomain.make(name: 'apps.internal', internal: true) }
-        
+
         it 'does not assign vip_offsets that exceed the CIDR range' do
-          
           expect {
             Route.make(host: 'ants0', domain: internal_domain, vip_offset: 0)
           }.to raise_error(Sequel::ValidationFailed, 'name vip_offset')
@@ -1272,7 +1271,6 @@ module VCAP::CloudController
             Route.make(host: 'ants8', domain: internal_domain, vip_offset: 8)
           }.to raise_error(Sequel::ValidationFailed, 'name vip_offset')
         end
-
       end
 
       context 'when there are routes on internal domains' do
@@ -1281,14 +1279,14 @@ module VCAP::CloudController
         let!(:internal_route_2) { Route.make(host: 'woof', domain: internal_domain, vip_offset: 2) }
         let!(:internal_route_3) { Route.make(host: 'quack', domain: internal_domain, vip_offset: 4) }
         let(:external_private_route) { Route.make }
-        
+
         it 'can have different vip_offsets in range' do
           expect(internal_route_1).to be_valid
           expect(internal_route_1.vip_offset).to eq(1)
           expect(internal_route_2).to be_valid
           expect(internal_route_3).to be_valid
         end
-        
+
         it 'assigns lowest-possible vip_offsets' do
           internal_route_4 = Route.make(host: 'bray', domain: internal_domain)
           expect(internal_route_4.vip_offset).to eq(3)
@@ -1311,7 +1309,7 @@ module VCAP::CloudController
       let!(:internal_route_2) { Route.make(host: 'woof', domain: internal_domain, vip_offset: 2) }
       let!(:internal_route_3) { Route.make(host: 'quack', domain: internal_domain, vip_offset: 4) }
       let(:external_private_route) { Route.make }
-      
+
       it 'returns a ipv4 ip address offset from the beginning of the internal route vip range' do
         expect(internal_route_1.vip).to eq('127.128.0.1')
         internal_route_2.vip_offset = 16

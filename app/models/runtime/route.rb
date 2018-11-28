@@ -87,7 +87,6 @@ module VCAP::CloudController
       validate_total_routes
       validate_ports
       validate_total_reserved_route_ports if port && port > 0
-      errors.add(:host, :domain_conflict) if domains_match?
       errors.add(:name, :vip_offset) if vip_offset_exceeds_range?
 
       RouteValidator.new(self).validate
@@ -106,6 +105,7 @@ module VCAP::CloudController
       host_is_system_hostname = Config.config.get(:system_hostnames).include? host
 
       errors.add(:host, :system_hostname_conflict) if domain_is_system_domain && host_is_system_hostname
+      errors.add(:host, :domain_conflict) if domains_match?
     end
 
     def validate_ports
@@ -188,6 +188,7 @@ module VCAP::CloudController
     def vip_offset_exceeds_range?
       return false if vip_offset.nil?
       return true if vip_offset <= 0
+
       vip_offset > internal_route_vip_range_len
     end
 
@@ -202,9 +203,9 @@ module VCAP::CloudController
       # See SQL self-joins for the reasoning behind this
 
       n = Route.exclude(vip_offset: 1).
-                exclude { vip_offset - 1 =~ Route.select(:vip_offset)}.order(:vip_offset).get{vip_offset-1} ||
-		          ( return (Route.max(:vip_offset) || 0) + 1 ) 
-      Route.where { vip_offset < n }.reverse(:vip_offset).get{vip_offset + 1} || 1
+          exclude { vip_offset - 1 =~ Route.select(:vip_offset) }.order(:vip_offset).get { vip_offset - 1 } ||
+              (return (Route.max(:vip_offset) || 0) + 1)
+      Route.where { vip_offset < n }.reverse(:vip_offset).get { vip_offset + 1 } || 1
     end
 
     def before_save
