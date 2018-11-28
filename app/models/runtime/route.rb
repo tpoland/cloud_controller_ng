@@ -175,6 +175,10 @@ module VCAP::CloudController
       domain.internal
     end
 
+    def vip
+      vip_offset && internal_route_vip_range.nth(vip_offset).to_s
+    end
+
     def wildcard_host?
       host == '*'
     end
@@ -183,8 +187,8 @@ module VCAP::CloudController
 
     def vip_offset_exceeds_range?
       return false if vip_offset.nil?
-      len = internal_route_vip_range_len
-      vip_offset > len || vip_offset < 0
+      return true if vip_offset <= 0
+      vip_offset > internal_route_vip_range_len
     end
 
     def before_destroy
@@ -192,27 +196,34 @@ module VCAP::CloudController
       super
     end
 
+    def find_next_vip_offset
+      # This code courtesy of Jeremy Evans as part of discussion on
+      # https://groups.google.com/d/msg/sequel-talk/3GJ8_mOgJ9U/roWJ2sWHAwAJ
+      # See SQL self-joins for the reasoning behind this
+
+      n = Route.exclude(vip_offset: 1).
+                exclude { vip_offset - 1 =~ Route.select(:vip_offset)}.order(:vip_offset).get{vip_offset-1} ||
+		          ( return (Route.max(:vip_offset) || 0) + 1 ) 
+      Route.where { vip_offset < n }.reverse(:vip_offset).get{vip_offset + 1} || 1
+    end
+
     def before_save
       if internal? && vip_offset.nil?
         len = internal_route_vip_range_len
         raise OutOfVIPException.new('out of vip_offset slots') if self.class.exclude(vip_offset: nil).count >= len
 
-        proposed_offset = self.class.max(:vip_offset) + 1
-        if proposed_offset >= len
-          loop do
-            proposed_offset = rand(len)
-            break if self.class.where(vip_offset: proposed_offset).count == 0
-          end
-        end
-
-        self.vip_offset = proposed_offset
+        self.vip_offset = find_next_vip_offset
       end
     end
 
     def internal_route_vip_range_len
+      internal_route_vip_range.len - 2
+    end
+
+    def internal_route_vip_range
       @internal_route_vip_range ||= begin
         internal_route_vip_range = Config.config.get(:internal_route_vip_range)
-        NetAddr::IPv4Net.parse(internal_route_vip_range).len
+        NetAddr::IPv4Net.parse(internal_route_vip_range)
       end
     end
 
