@@ -358,5 +358,30 @@ module VCAP::CloudController
         end
       end
     end
+
+    describe 'during an upgrade with leftover legacy webbish processes' do
+      let!(:legacy_web_process) do
+        ProcessModel.make(
+          app: web_process.app,
+          type: 'web-deployment-guid-legacy',
+          instances: current_deploying_instances,
+          guid: 'guid-legacy',
+          revision: revision,
+        )
+      end
+
+      it 'coerces the webbish process to web' do
+        subject.scale
+        expect legacy_web_process.reload.type to eq ProcessTypes::WEB
+      end
+
+      it 'scales up the new web process by one' do
+        expect {
+          subject.scale
+        }.to change {
+          legacy_web_process.reload.instances
+        }.by(1)
+      end
+    end
   end
 end
