@@ -403,7 +403,21 @@ module VCAP::CloudController
     end
 
     def filter_dataset(dataset)
-      dataset.where(type: ProcessTypes::WEB)
+      processes = ProcessModel.all
+
+      newest_processes = {}
+      processes.group_by(&:app_guid).each do |_, processes_for_app|
+        newest_process = processes_for_app.max_by { |p| [p.created_at, p.id] }
+        newest_processes[newest_process.guid] = newest_process
+      end
+      processes.delete_if { |p| newest_processes[p.guid] }
+
+      dataset.where(type: ProcessTypes::WEB).exclude(guid: processes.map(&:guid))
+    end
+
+    def duplicated_guids
+      # processes GROUP BY app_guid having count(id) > 1
+      return []
     end
 
     def unprocessable!(message)
