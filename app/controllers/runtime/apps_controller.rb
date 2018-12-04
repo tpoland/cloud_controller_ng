@@ -407,16 +407,15 @@ module VCAP::CloudController
     end
 
     def duplicated_guids
-      query = 'SELECT DISTINCT p1.guid 
-	       FROM processes p1 JOIN processes p2 ON 
-	       p1.app_guid = p2.app_guid AND 
-	          (p1.created_at < p2.created_at 
-		   OR (p1.created_at = p2.created_at AND p1.id < p2.id))'
-      ProcessModel.db.fetch(query).map { |row| row[:guid] }
-
-      # For pure-Sequel code, see https://groups.google.com/d/msg/sequel-talk/wVuTgcCk2gw/VlPVVI2SBgAJ
-      # The suggested code currently doesn't work. The goal is to replace the above SQL with Sequel
-      # once it's worked out.
+      # How to do self-joins in Sequel
+      # Details at https://groups.google.com/d/msg/sequel-talk/wVuTgcCk2gw/VlPVVI2SBgAJ
+      ProcessModel.db.from(Sequel[:processes].as(:p1), Sequel[:processes].as(:p2)).
+        where { (p1[:app_guid] =~ p2[:app_guid]) &
+                ((p1[:created_at] < p2[:created_at]) |
+                 ((p1[:created_at] =~ p2[:created_at]) & (p1[:id] < p2[:id])))
+      }.
+        distinct.
+        select { p1[:guid] }
     end
 
     def unprocessable!(message)
