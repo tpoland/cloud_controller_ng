@@ -105,14 +105,22 @@ RSpec.describe 'Apps' do
 
     context 'when there are multiple web processes for a single app' do
       let(:parsed_response) do
-        parsed_response = MultiJson.load(last_response.body)
+        MultiJson.load(last_response.body)
       end
 
+      let(:one_day_from_now) { 1.day.from_now }
       let!(:newer_web_process) do
         VCAP::CloudController::ProcessModel.make(
           app: shared_app_model,
-          created_at: 1.day.from_now,
+          created_at: one_day_from_now,
           guid: 'newer_web_process-for-same-app'
+        )
+      end
+      let!(:newer_web_process_same_time) do
+        VCAP::CloudController::ProcessModel.make(
+          app: shared_app_model,
+          created_at: one_day_from_now,
+          guid: 'newer_web_process-for-same-app-same-time'
         )
       end
       let!(:web_process_for_different_app) do
@@ -129,20 +137,20 @@ RSpec.describe 'Apps' do
       end
 
       it 'only lists the newest web process for each app' do
-        non_web_process = VCAP::CloudController::ProcessModelFactory.make(space: space, type: 'non-web')
+        VCAP::CloudController::ProcessModelFactory.make(space: space, type: 'non-web')
 
         get '/v2/apps', nil, headers_for(user)
         expect(last_response.status).to eq(200), last_response.body
 
-        expect(parsed_response['resources'].map {|r| r['metadata']['guid']}).to contain_exactly(newer_web_process.app_guid, web_process_for_different_app.app_guid)
+        expect(parsed_response['resources'].map { |r| r['metadata']['guid'] }).to contain_exactly(newer_web_process_same_time.app_guid, web_process_for_different_app.app_guid)
       end
 
       context 'pagination' do
         let!(:another_new_process) {
           VCAP::CloudController::ProcessModelFactory.make(:unstaged,
                                                           app:                        VCAP::CloudController::AppModel.make(
-                                                              space:                 space,
-                                                              environment_variables: { 'RAILS_ENV' => 'staging' }
+                                                            space:                 space,
+                                                            environment_variables: { 'RAILS_ENV' => 'staging' }
                                                           ),
                                                           guid: 'another_new_process-guid',
                                                           command:                    'hello_world',
@@ -155,13 +163,13 @@ RSpec.describe 'Apps' do
         it 'paginates page 1 correctly including only the newest web process for an app' do
           get '/v2/apps?results-per-page=2&order-direction=desc&page=1', nil, headers_for(user)
           expect(last_response.status).to eq(200), last_response.body
-          expect(parsed_response['resources'].map {|r| r['metadata']['guid']}).to contain_exactly(another_new_process.app_guid, web_process_for_different_app.app_guid)
+          expect(parsed_response['resources'].map { |r| r['metadata']['guid'] }).to contain_exactly(another_new_process.app_guid, web_process_for_different_app.app_guid)
         end
 
         it 'paginates page 2 correctly including only the newest web process for an app' do
           get '/v2/apps?results-per-page=2&order-direction=desc&page=2', nil, headers_for(user)
           expect(last_response.status).to eq(200), last_response.body
-          expect(parsed_response['resources'].map {|r| r['metadata']['guid']}).to contain_exactly(newer_web_process.app_guid)
+          expect(parsed_response['resources'].map { |r| r['metadata']['guid'] }).to contain_exactly(newer_web_process.app_guid)
         end
       end
     end

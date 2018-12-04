@@ -403,21 +403,20 @@ module VCAP::CloudController
     end
 
     def filter_dataset(dataset)
-      processes = ProcessModel.all
-
-      newest_processes = {}
-      processes.group_by(&:app_guid).each do |_, processes_for_app|
-        newest_process = processes_for_app.max_by { |p| [p.created_at, p.id] }
-        newest_processes[newest_process.guid] = newest_process
-      end
-      processes.delete_if { |p| newest_processes[p.guid] }
-
-      dataset.where(type: ProcessTypes::WEB).exclude(guid: processes.map(&:guid))
+      dataset.where(type: ProcessTypes::WEB).exclude(guid: duplicated_guids)
     end
 
     def duplicated_guids
-      # processes GROUP BY app_guid having count(id) > 1
-      return []
+      query = 'SELECT DISTINCT p1.guid 
+	       FROM processes p1 JOIN processes p2 ON 
+	       p1.app_guid = p2.app_guid AND 
+	          (p1.created_at < p2.created_at 
+		   OR (p1.created_at = p2.created_at AND p1.id < p2.id))'
+      ProcessModel.db.fetch(query).map { |row| row[:guid] }
+
+      # For pure-Sequel code, see https://groups.google.com/d/msg/sequel-talk/wVuTgcCk2gw/VlPVVI2SBgAJ
+      # The suggested code currently doesn't work. The goal is to replace the above SQL with Sequel
+      # once it's worked out.
     end
 
     def unprocessable!(message)
