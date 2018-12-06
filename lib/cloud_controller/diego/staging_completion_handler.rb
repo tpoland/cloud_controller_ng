@@ -129,6 +129,9 @@ module VCAP::CloudController
         app         = droplet.app
         web_process = app.newest_web_process
 
+        revision = RevisionCreate.create(app, droplet)
+        web_process.update(revision: revision)
+
         return if web_process.latest_droplet.guid != droplet.guid
 
         app.db.transaction do
@@ -138,6 +141,8 @@ module VCAP::CloudController
 
           app.processes.each do |process|
             process.lock!
+            process.update(revision: revision)
+
             Repositories::AppUsageEventRepository.new.create_from_process(process, 'BUILDPACK_SET')
           end
         end

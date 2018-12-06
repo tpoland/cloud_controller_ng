@@ -1,7 +1,7 @@
 module VCAP::CloudController
   class RevisionCreate
     class << self
-      def create(app)
+      def create(app, droplet)
         RevisionModel.db.transaction do
           next_version = calculate_next_version(app)
 
@@ -9,7 +9,7 @@ module VCAP::CloudController
             existing_revision_for_version.destroy
           end
 
-          RevisionModel.create(app: app, version: next_version)
+          RevisionModel.create(app: app, droplet: droplet, version: next_version)
         end
       end
 

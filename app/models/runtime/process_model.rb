@@ -107,8 +107,8 @@ module VCAP::CloudController
 
     one_through_one :current_droplet,
       class:             '::VCAP::CloudController::DropletModel',
-      join_table:        AppModel.table_name,
-      left_primary_key:  :app_guid, left_key: :guid,
+      join_table:        RevisionModel.table_name,
+      left_primary_key:  :revision_guid, left_key: :guid,
       right_primary_key: :guid, right_key: :droplet_guid
 
     one_to_many :route_mappings, class: 'VCAP::CloudController::RouteMappingModel', primary_key: [:app_guid, :type], key: [:app_guid, :process_type]
