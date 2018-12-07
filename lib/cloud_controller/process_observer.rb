@@ -19,7 +19,7 @@ module VCAP::CloudController
         return unless changes
 
         with_diego_communication_handling do
-          if changes.key?(:state) || changes.key?(:diego) || changes.key?(:enable_ssh) || changes.key?(:ports)
+          if changes.key?(:state) || changes.key?(:diego) || changes.key?(:enable_ssh) || changes.key?(:ports) || changes.key?(:revision_guid)
             react_to_state_change(process)
           elsif changes.key?(:instances)
             react_to_instances_change(process)

@@ -52,15 +52,21 @@ module VCAP::CloudController
       self.associations[:stack] = Stack.default unless stack
     end
 
-    one_through_one :latest_package,
-      class:             'VCAP::CloudController::PackageModel',
+    one_through_one :current_droplet,
+      class:             '::VCAP::CloudController::DropletModel',
+      join_table:        RevisionModel.table_name,
+      left_primary_key:  :revision_guid, left_key: :guid,
+      right_primary_key: :guid, right_key: :droplet_guid
+
+    one_through_one :latest_droplet,
+      class:             'VCAP::CloudController::DropletModel',
       join_table:        AppModel.table_name,
       left_primary_key:  :app_guid, left_key: :guid,
       right_primary_key: :app_guid, right_key: :guid,
       order:             [Sequel.desc(:created_at), Sequel.desc(:id)], limit: 1
 
-    one_through_one :latest_droplet,
-      class:             'VCAP::CloudController::DropletModel',
+    one_through_one :latest_package,
+      class:             'VCAP::CloudController::PackageModel',
       join_table:        AppModel.table_name,
       left_primary_key:  :app_guid, left_key: :guid,
       right_primary_key: :app_guid, right_key: :guid,
@@ -104,12 +110,6 @@ module VCAP::CloudController
       right_primary_key: :guid, right_key: :route_guid,
       distinct:     true,
       order:        Sequel.asc(:id)
-
-    one_through_one :current_droplet,
-      class:             '::VCAP::CloudController::DropletModel',
-      join_table:        RevisionModel.table_name,
-      left_primary_key:  :revision_guid, left_key: :guid,
-      right_primary_key: :guid, right_key: :droplet_guid
 
     one_to_many :route_mappings, class: 'VCAP::CloudController::RouteMappingModel', primary_key: [:app_guid, :type], key: [:app_guid, :process_type]
 
@@ -285,6 +285,7 @@ module VCAP::CloudController
       # * health check type is changed
       # * health check http endpoint is changed
       # * ports were changed by the user
+      # * a new revision was assigned to the process, implying a new droplet and code
       #
       # this is to indicate that the running state of an application has changed,
       # and that the system should converge on this new version.
@@ -295,6 +296,7 @@ module VCAP::CloudController
         column_changed?(:memory) ||
         column_changed?(:health_check_type) ||
         column_changed?(:health_check_http_endpoint) ||
+        column_changed?(:revision_guid) ||
         @ports_changed_by_user
       )
     end
