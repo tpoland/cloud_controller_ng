@@ -129,12 +129,11 @@ module VCAP::CloudController
         app         = droplet.app
         web_process = app.newest_web_process
 
-        revision = RevisionCreate.create(app, droplet)
-        web_process.update(revision: revision)
-
         return if web_process.latest_droplet.guid != droplet.guid
 
         app.db.transaction do
+          revision = RevisionCreate.create(app, droplet)
+
           app.lock!
 
           app.update(droplet: droplet)
@@ -147,6 +146,7 @@ module VCAP::CloudController
           end
         end
 
+        web_process.reload
         @runners.runner_for_process(web_process).start
       end
 
