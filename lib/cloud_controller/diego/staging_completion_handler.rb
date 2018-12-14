@@ -111,7 +111,7 @@ module VCAP::CloudController
           end
 
           begin
-            start_process if with_start
+            start_process(app, droplet, with_start)
           rescue => e
             logger.error(logger_prefix + 'starting-process-failed', staging_guid: build.guid, response: payload, error: e.message)
             return
@@ -125,14 +125,13 @@ module VCAP::CloudController
         raise NotImplementedError
       end
 
-      def start_process
-        app         = droplet.app
-        web_process = app.newest_web_process
+      def start_process(app, droplet, with_start)
+        revision = RevisionCreate.create(app, droplet)
 
-        return if web_process.latest_droplet.guid != droplet.guid
+        web_process = app.newest_web_process
+        return if web_process&.latest_droplet&.guid != droplet.guid
 
         app.db.transaction do
-          revision = RevisionCreate.create(app, droplet)
 
           app.lock!
 
@@ -145,9 +144,10 @@ module VCAP::CloudController
             Repositories::AppUsageEventRepository.new.create_from_process(process, 'BUILDPACK_SET')
           end
         end
-
-        web_process.reload
-        @runners.runner_for_process(web_process).start
+        if with_start
+          web_process.reload
+          @runners.runner_for_process(web_process).start
+        end
       end
 
       def error_parser

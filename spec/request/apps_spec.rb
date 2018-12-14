@@ -1528,6 +1528,7 @@ RSpec.describe 'Apps' do
       expect(droplet_event.metadata).to eq({ 'request' => { 'droplet_guid' => droplet.guid } })
 
       expect(app_model.reload.processes.count).to eq(1)
+      expect(app_model.processes.first.current_droplet.guid).to eq(droplet.guid)
     end
 
     it 'creates audit.app.process.create events' do
