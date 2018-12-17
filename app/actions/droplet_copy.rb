@@ -35,6 +35,8 @@ module VCAP::CloudController
           new_droplet.state = @source_droplet.state
           new_droplet.save
         end
+        require 'actions/revision_create'
+        revision = RevisionCreate.create(destination_app, new_droplet)
 
         Repositories::DropletEventRepository.record_create_by_copying(
           new_droplet.guid,
