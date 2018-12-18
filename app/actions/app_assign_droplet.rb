@@ -19,7 +19,8 @@ module VCAP::CloudController
         app.update(droplet_guid: droplet.guid)
 
         record_assign_droplet_event(app, droplet)
-        create_processes(app)
+        revision = RevisionCreate.create(app, droplet)
+        create_processes(app, revision)
 
         app.save
       end
@@ -42,8 +43,8 @@ module VCAP::CloudController
       )
     end
 
-    def create_processes(app)
-      ProcessCreateFromAppDroplet.new(@user_audit_info).create(app)
+    def create_processes(app, revision)
+      ProcessCreateFromAppDroplet.new(@user_audit_info).create(app, revision)
     end
 
     def droplet_associated?(app, droplet)

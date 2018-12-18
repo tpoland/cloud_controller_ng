@@ -19,7 +19,12 @@ module VCAP::CloudController
 
               if droplet.processing_upload?
                 droplet.update(state: DropletModel::STAGED_STATE)
-                droplet.app.update(droplet: droplet)
+                app = droplet.app
+                app.update(droplet: droplet)
+                revision = RevisionCreate.create(app, droplet)
+                app.processes.each do |process|
+                  process.update(revision: revision)
+                end
               end
             end
           end
