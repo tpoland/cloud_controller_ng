@@ -26,7 +26,7 @@ module V3ErrorsHelper
     raise CloudController::Errors::ApiError.new_from_details('ResourceNotFound', message)
   end
 
-  def resource_not_found!(resource)
+  def  resource_not_found!(resource)
     raise CloudController::Errors::NotFound.new_from_details('ResourceNotFound', "#{resource.to_s.humanize} not found")
   end
 end

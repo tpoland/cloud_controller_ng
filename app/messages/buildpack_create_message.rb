@@ -15,7 +15,8 @@ module VCAP::CloudController
 
     validates :stack,
       string: true,
-      allow_nil: true
+      allow_nil: true,
+      length: { maximum: 250 }
 
     validates :position,
       allow_nil: true,
@@ -23,10 +24,10 @@ module VCAP::CloudController
 
     validates :enabled,
       allow_nil: true,
-      inclusion: { in: [true, false] }
+      inclusion: { in: [true, false], message: 'must be a boolean' }
 
     validates :locked,
       allow_nil: true,
-      inclusion: { in: [true, false] }
+      inclusion: { in: [true, false], message: 'must be a boolean'  }
   end
 end
