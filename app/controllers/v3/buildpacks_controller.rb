@@ -23,6 +23,18 @@ class BuildpacksController < ApplicationController
     render status: :ok, json: Presenters::V3::BuildpackPresenter.new(buildpack)
   end
 
+  def upload
+    unauthorized! unless permission_queryer.can_write_globally?
+
+    uploaded_file = CloudController::DependencyLocator.instance.upload_handler.uploaded_file(request.POST, 'buildpack')
+    uploaded_filename = CloudController::DependencyLocator.instance.upload_handler.uploaded_filename(request.POST, 'buildpack')
+
+    uploaded_filename = File.basename(uploaded_filename)
+
+    render status: :ok, json: {}
+  end
+
+
   private
 
   def buildpack_not_found!

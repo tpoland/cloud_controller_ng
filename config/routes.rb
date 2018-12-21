@@ -151,4 +151,5 @@ Rails.application.routes.draw do
   # buildpacks
   get '/buildpacks/:guid', to: 'buildpacks#show'
   post '/buildpacks', to: 'buildpacks#create'
+  post '/buildpacks/:guid/upload', to: 'buildpacks#upload'
 end
