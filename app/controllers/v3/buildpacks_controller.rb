@@ -1,7 +1,9 @@
 require 'messages/buildpack_create_message'
 require 'messages/buildpacks_list_message'
+require 'messages/buildpack_upload_message'
 require 'fetchers/buildpack_list_fetcher'
 require 'actions/buildpack_create'
+require 'actions/buildpack_upload'
 require 'presenters/v3/buildpack_presenter'
 
 class BuildpacksController < ApplicationController
@@ -37,6 +39,24 @@ class BuildpacksController < ApplicationController
       path: '/v3/buildpacks',
       message: message
     )
+  end
+
+  def upload
+    unauthorized! unless permission_queryer.can_write_globally?
+
+    message = BuildpackUploadMessage.create_from_params(hashed_params[:body])
+    unprocessable!(message.errors.full_messages) unless message.valid?
+
+    buildpack = Buildpack.find(guid: hashed_params[:guid])
+    buildpack_not_found! unless buildpack
+
+    BuildpackUpload.new.upload_async(
+        message: message,
+        buildpack: buildpack,
+        user_audit_info: user_audit_info
+    )
+
+    render status: :ok, json: Presenters::V3::BuildpackPresenter.new(buildpack)
   end
 
   private
