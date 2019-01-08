@@ -72,6 +72,7 @@ module VCAP
           end
 
           def builder_opts(process)
+            # FIXME use revision if appropriate
             checksum_info = droplet_checksum_info(process.current_droplet)
             {
               droplet_uri:        @droplet_url_generator.perma_droplet_download_url(process.guid, checksum_info['value']),

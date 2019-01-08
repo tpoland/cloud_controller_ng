@@ -10,10 +10,10 @@ module VCAP::CloudController
           app.lock!
           process_attributes = { state: ProcessModel::STARTED }
 
-          if app.should_create_revision?
-            revision = RevisionCreate.create(app)
-            process_attributes[:revision_guid] = revision.guid
-          end
+          # if app.should_create_revision?
+          #   revision = RevisionCreate.create(app)
+          #   process_attributes[:revision_guid] = revision.guid
+          # end
 
           app.update(desired_state: ProcessModel::STARTED)
           app.processes.each do |process|

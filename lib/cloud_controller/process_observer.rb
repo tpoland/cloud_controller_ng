@@ -35,6 +35,11 @@ module VCAP::CloudController
           return
         end
 
+        #if process.app.revisions_enabled?
+        #  process.update(revision: app.revision)
+        #end
+
+        # if revision is new, and we made it this far, process.revision = process.app.revision
         @runners.runner_for_process(process).start unless process.needs_staging?
       end
 

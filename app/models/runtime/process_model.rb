@@ -524,6 +524,10 @@ module VCAP::CloudController
       ProcessTypes.legacy_webish?(type)
     end
 
+    def revisions_enabled?
+      app.revisions_enabled?
+    end
+
     private
 
     def non_unique_process_types

@@ -11,6 +11,7 @@ module VCAP::CloudController
 
         app.db.transaction do
           app.lock!
+          # app.update(desired_state: ProcessModel::STOPPED)
           app.update(desired_state: ProcessModel::STARTED)
           app.processes.each do |process|
             ProcessRestart.restart(
