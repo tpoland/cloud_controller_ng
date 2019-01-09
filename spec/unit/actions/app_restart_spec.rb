@@ -66,6 +66,8 @@ module VCAP::CloudController
         end
 
         it 'keeps process states to STARTED' do
+          AppRestart.restart(app: app, config: config, user_audit_info: user_audit_info)
+
           expect(process1.reload.state).to eq('STARTED')
           expect(process2.reload.state).to eq('STARTED')
         end
@@ -79,6 +81,15 @@ module VCAP::CloudController
           expect(ProcessRestart).
             to have_received(:restart).
             with(process: process2, config: config, stop_in_runtime: true)
+        end
+
+        it 'stops the app to create a revision when appropriate' do
+          app.update(revisions_enabled: true)
+          app.update(droplet: DropletModel.make(app: app))
+          expect {
+            AppRestart.restart(app: app, config: config, user_audit_info: user_audit_info)
+          }.to change { RevisionModel.count }.by(1)
+          expect(app.reload.desired_state).to eq('STARTED')
         end
 
         it 'generates a STOP usage event' do

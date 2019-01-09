@@ -5,6 +5,51 @@ module VCAP::CloudController
     let(:app_model) { AppModel.create(space: space, name: 'some-name') }
     let(:space) { Space.make }
 
+    describe 'saving' do
+      let(:droplet) { DropletModel.create(state: DropletModel::STAGED_STATE) }
+      let(:app_model) { AppModel.create(space: space, name: 'some-name', droplet: droplet, revisions_enabled: true) }
+
+      context 'when the droplet has changed' do
+        it 'creates a revision when appropriate' do
+          expect do
+            app_model.update(desired_state: ProcessModel::STARTED)
+          end.to change { RevisionModel.count }.by(1)
+        end
+
+        context 'and revisions are disabled' do
+          let(:app_model) { AppModel.create(space: space, name: 'some-name', droplet: droplet, revisions_enabled: false) }
+
+          it 'does not create a revision' do
+            expect do
+              app_model.update(desired_state: ProcessModel::STARTED)
+            end.not_to change { RevisionModel.count }
+          end
+        end
+      end
+
+      context 'when the droplet has not changed' do
+        it 'does not create a revision' do
+          app_model.update(desired_state: ProcessModel::STARTED) # nil -> droplet from creation
+          expect do
+            app_model.update(desired_state: ProcessModel::STOPPED)
+            app_model.update(desired_state: ProcessModel::STARTED)
+          end.not_to change { RevisionModel.count }
+        end
+      end
+
+      context 'when the app is already started' do
+        let(:app_model) { AppModel.create(space: space, name: 'some-name', droplet: droplet, revisions_enabled: true, desired_state: ProcessModel::STARTED) }
+        let(:new_droplet) { DropletModel.create(app: app_model, state: DropletModel::STAGED_STATE) }
+
+        it 'does not create a revision' do
+          app_model.update(droplet: new_droplet)
+          expect do
+            app_model.update(desired_state: ProcessModel::STARTED)
+          end.not_to change { RevisionModel.count }
+        end
+      end
+    end
+
     describe '#oldest_web_process' do
       context 'when there are no web processes' do
         it 'returns nil' do

@@ -52,11 +52,12 @@ module VCAP
           end
 
           def desired_app_message(process)
-            checksum_info = droplet_checksum_info(process.current_droplet)
+            droplet = droplet_from_process(process)
+            checksum_info = droplet_checksum_info(droplet)
             {
               'start_command' => process.specified_or_detected_command,
               'droplet_uri'   => @droplet_url_generator.perma_droplet_download_url(process.guid, checksum_info['value']),
-              'droplet_hash'  => process.current_droplet.droplet_hash,
+              'droplet_hash'  => droplet.droplet_hash,
               'checksum'      => checksum_info,
             }
           end
@@ -71,11 +72,20 @@ module VCAP
             end
           end
 
+          def droplet_from_process(process)
+            droplet_guid = process.app.revisions_enabled && process.revision&.droplet_guid
+            return DropletModel.find(guid: droplet_guid) if droplet_guid
+            return process.current_droplet
+          end
+
           def builder_opts(process)
-            checksum_info = droplet_checksum_info(process.current_droplet)
+            # FIXME use revision if appropriate
+
+            droplet = droplet_from_process(process)
+            checksum_info = droplet_checksum_info(droplet)
             {
               droplet_uri:        @droplet_url_generator.perma_droplet_download_url(process.guid, checksum_info['value']),
-              droplet_hash:       process.current_droplet.droplet_hash,
+              droplet_hash:       droplet.droplet_hash,
               ports:              Protocol::OpenProcessPorts.new(process).to_a,
               process_guid:       ProcessGuid.from_process(process),
               stack:              process.app.lifecycle_data.stack,

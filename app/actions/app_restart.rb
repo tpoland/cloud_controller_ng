@@ -9,7 +9,10 @@ module VCAP::CloudController
       def restart(app:, config:, user_audit_info:)
         need_to_stop_in_runtime = !app.stopped?
 
+
         app.db.transaction do
+          app.update(desired_state: ProcessModel::STOPPED)
+
           app.lock!
           app.update(desired_state: ProcessModel::STARTED)
           app.processes.each do |process|

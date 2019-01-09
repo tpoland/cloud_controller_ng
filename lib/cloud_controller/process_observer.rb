@@ -16,6 +16,7 @@ module VCAP::CloudController
 
       def updated(process)
         changes = process.previous_changes
+        puts "changes: #{changes}"
         return unless changes
 
         with_diego_communication_handling do
@@ -33,6 +34,10 @@ module VCAP::CloudController
         unless process.started?
           @runners.runner_for_process(process).stop
           return
+        end
+
+        if process.app.revisions_enabled
+          process.update(revision: process.app.latest_revision)
         end
 
         @runners.runner_for_process(process).start unless process.needs_staging?

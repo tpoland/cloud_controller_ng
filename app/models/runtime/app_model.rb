@@ -48,6 +48,10 @@ module VCAP::CloudController
       self.enable_ssh = Config.config.get(:default_app_ssh_access) if self.enable_ssh.nil?
     end
 
+    def after_save
+      RevisionCreate.create(self) if can_create_revision? && changing_from_stopped_to_started?
+    end
+
     def validate
       validates_presence :name
       validates_format APP_NAME_REGEX, :name
@@ -122,11 +126,15 @@ module VCAP::CloudController
       RevisionModel.where(app: self).max_by(&:created_at)
     end
 
-    def should_create_revision?
+    def can_create_revision?
       self.revisions_enabled && self.droplet_guid != self.latest_revision&.droplet_guid
     end
 
     private
+
+    def changing_from_stopped_to_started?
+      self.previous_changes&.[](:desired_state) == [ProcessModel::STOPPED, ProcessModel::STARTED]
+    end
 
     def validate_environment_variables
       return unless environment_variables
