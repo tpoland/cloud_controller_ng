@@ -146,6 +146,10 @@ module VCAP::CloudController
 
     alias_method :diego?, :diego
 
+    def revisions_enabled?
+      app.revisions_enabled
+    end
+
     def package_hash
       # this caches latest_package for performance reasons
       package = latest_package
