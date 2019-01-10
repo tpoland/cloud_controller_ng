@@ -35,8 +35,8 @@ module VCAP::CloudController
 
                   it 'raises' do
                     expect do
-                      buildpack_upload.upload_async(message: message, buildpack: buildpack, config: config)
-                    end.to raise_error(BuildpackUpload::NonUniqueStackAndName)
+                      described_class.validate(buildpack, message)
+                    end.to raise_error(UploadValidator::NonUniqueStackAndName)
                   end
                 end
               end
