@@ -35,77 +35,86 @@ module VCAP::CloudController
 
           found_buildpacks = Buildpack.where(name: buildpack_name).all
 
-          manifest_fields.each do |buildpack_fields|
-            guid_of_buildpack_to_update = find_buildpack_to_update(found_buildpacks, buildpack_fields[:stack], planned_jobs)
 
-            planned_jobs << if guid_of_buildpack_to_update
-                              VCAP::CloudController::Jobs::Runtime::UpdateBuildpackInstaller.new({
-                                name: buildpack_name,
-                                stack: buildpack_fields[:stack],
-                                file: buildpack_fields[:file],
-                                options: buildpack_fields[:options],
-                                upgrade_buildpack_guid: guid_of_buildpack_to_update
-                              })
-                            else
-                              VCAP::CloudController::Jobs::Runtime::CreateBuildpackInstaller.new({
-                                name: buildpack_name,
-                                stack: buildpack_fields[:stack],
-                                file: buildpack_fields[:file],
-                                options: buildpack_fields[:options]
-                              })
-                            end
+          manifest_fields.each do |buildpack_fields|
+            detected_stack = buildpack_fields[:stack]
+
+            if found_buildpacks.empty?
+              planned_jobs << VCAP::CloudController::Jobs::Runtime::CreateBuildpackInstaller.new({
+                name: buildpack_name,
+                stack: buildpack_fields[:stack],
+                file: buildpack_fields[:file],
+                options: buildpack_fields[:options]
+              })
+              next
+            end
+
+            ensure_no_buildpack_downgraded_to_nil_stack!(found_buildpacks)
+
+            buildpack_to_update = found_buildpacks.find {|candidate| candidate.stack == detected_stack}
+            unless buildpack_to_update.nil?
+              planned_jobs << VCAP::CloudController::Jobs::Runtime::UpdateBuildpackInstaller.new({
+                name: buildpack_name,
+                stack: buildpack_fields[:stack],
+                file: buildpack_fields[:file],
+                options: buildpack_fields[:options],
+                upgrade_buildpack_guid: buildpack_to_update.guid
+              })
+              next
+            end
+
+            # prevent creation of a new buildpack with the same name, but a nil stack
+            raise StacklessBuildpackIncompatibilityError if detected_stack.nil?
+
+            buildpack_to_update = found_buildpacks.find {|candidate| candidate.stack.nil?}
+            if buildpack_to_update && buildpack_not_yet_updated_from_nil_stack(planned_jobs, buildpack_to_update.guid)
+              planned_jobs << VCAP::CloudController::Jobs::Runtime::UpdateBuildpackInstaller.new({
+                name: buildpack_name,
+                stack: buildpack_fields[:stack],
+                file: buildpack_fields[:file],
+                options: buildpack_fields[:options],
+                upgrade_buildpack_guid: buildpack_to_update.guid
+              })
+              next
+            end
+
+            planned_jobs << VCAP::CloudController::Jobs::Runtime::CreateBuildpackInstaller.new({
+              name: buildpack_name,
+              stack: buildpack_fields[:stack],
+              file: buildpack_fields[:file],
+              options: buildpack_fields[:options]
+            })
+
           end
 
           planned_jobs
         end
 
-        def find_buildpack_with_matching_stack(buildpacks, stack)
-          buildpacks.find { |candidate| candidate.stack == stack }
-        end
-
-        def find_buildpack_with_nil_stack(buildpacks)
-          buildpacks.find { |candidate| candidate.stack.nil? }
-        end
-
+        ## we dont care about these
+        # validate not planned
         def buildpack_not_yet_updated_from_nil_stack(planned_jobs, buildpack_guid)
-          planned_jobs.none? { |job| job.guid_to_upgrade == buildpack_guid }
+          planned_jobs.none? {|job| job.guid_to_upgrade == buildpack_guid}
         end
 
+        # validate the DB
         def ensure_no_buildpack_downgraded_to_nil_stack!(buildpacks)
-          if buildpacks.size > 1 && buildpacks.any? { |b| b.stack.nil? }
+          if buildpacks.size > 1 && buildpacks.any? {|b| b.stack.nil?}
             raise StacklessAndStackfulMatchingBuildpacksExistError
           end
         end
 
+        # validate manifest stack combos
         def ensure_no_mix_of_stackless_and_stackful_buildpacks!(manifest_fields)
-          if manifest_fields.size > 1 && manifest_fields.any? { |buildpack_fields| buildpack_fields[:stack].nil? }
+          if manifest_fields.size > 1 && manifest_fields.any? {|f| f[:stack].nil?}
             raise StacklessBuildpackIncompatibilityError
           end
         end
 
+        # validate manifest uniqueness
         def ensure_no_duplicate_buildpack_stacks!(manifest_fields)
-          if manifest_fields.uniq { |buildpack_fields| buildpack_fields[:stack] }.length < manifest_fields.length
+          if manifest_fields.uniq {|f| f[:stack]}.length < manifest_fields.length
             raise DuplicateInstallError
           end
-        end
-
-        def find_buildpack_to_update(found_buildpacks, detected_stack, planned_jobs)
-          return if found_buildpacks.empty?
-
-          ensure_no_buildpack_downgraded_to_nil_stack!(found_buildpacks)
-
-          buildpack_to_update = find_buildpack_with_matching_stack(found_buildpacks, detected_stack)
-          return buildpack_to_update.guid unless buildpack_to_update.nil?
-
-          # prevent creation of a new buildpack with the same name, but a nil stack
-          raise StacklessBuildpackIncompatibilityError if detected_stack.nil?
-
-          buildpack_to_update = find_buildpack_with_nil_stack(found_buildpacks)
-          if buildpack_to_update && buildpack_not_yet_updated_from_nil_stack(planned_jobs, buildpack_to_update.guid)
-            return buildpack_to_update.guid
-          end
-
-          nil
         end
       end
     end
