@@ -53,7 +53,7 @@ class BuildpacksController < ApplicationController
     BuildpackUpload.new.upload_async(
         message: message,
         buildpack: buildpack,
-        user_audit_info: user_audit_info
+        config: configuration
     )
 
     render status: :ok, json: Presenters::V3::BuildpackPresenter.new(buildpack)

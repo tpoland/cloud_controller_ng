@@ -208,6 +208,7 @@ RSpec.describe BuildpacksController, type: :controller do
     let(:user) { VCAP::CloudController::User.make }
     let(:uploader) { instance_double(VCAP::CloudController::BuildpackUpload, upload_async: nil) }
     let(:buildpack_bits_path) { '/tmp/buildpack_bits_path' }
+    let(:buildpack_bits_name) { 'buildpack.zip' }
 
     before do
       allow(VCAP::CloudController::BuildpackUpload).to receive(:new).and_return(uploader)
@@ -235,7 +236,7 @@ RSpec.describe BuildpacksController, type: :controller do
           it "returns #{expected_return_value}" do
             set_current_user_as_role(role: role, org: org, space: space, user: user)
 
-            post :upload, params: {guid: test_buildpack.guid, bits_path: buildpack_bits_path}
+            post :upload, params: {guid: test_buildpack.guid, bits_path: buildpack_bits_path, bits_name: buildpack_bits_name }
 
             expect(response.status).to eq expected_return_value
           end
@@ -250,7 +251,7 @@ RSpec.describe BuildpacksController, type: :controller do
     end
 
     describe 'when the user has permission to upload a buildpack' do
-      let(:params) { {guid: test_buildpack.guid, bits_path: buildpack_bits_path} }
+      let(:params) { {guid: test_buildpack.guid, bits_path: buildpack_bits_path, bits_name: buildpack_bits_name } }
 
       before do
         set_current_user_as_admin(user: user)
@@ -267,7 +268,7 @@ RSpec.describe BuildpacksController, type: :controller do
 
       context 'when the buildpack does not exist' do
         it 'errors' do
-          post :upload, params: {guid: 'dont-exist', bits_path: buildpack_bits_path}.merge({}), as: :json
+          post :upload, params: {guid: 'dont-exist', bits_path: buildpack_bits_path, bits_name: buildpack_bits_name }.merge({}), as: :json
 
           expect(response.status).to eq(404), response.body
           expect(response.body).to include('ResourceNotFound')
