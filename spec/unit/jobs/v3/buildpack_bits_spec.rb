@@ -4,13 +4,13 @@ require 'jobs/v3/buildpack_bits'
 module VCAP::CloudController
   module Jobs::V3
     RSpec.describe BuildpackBits, job_context: :api do
-      let(:uploaded_path) { 'tmp/random-nginx-filename-1020930' }
-      let(:filename) { 'buildpack.zip' }
+      let(:uploaded_path) { 'tmp/uploaded.zip' }
+      let(:filename) { 'uploaded.zip' }
       let!(:buildpack) { Buildpack.make }
       let(:buildpack_guid) { buildpack.guid }
 
       subject(:job) do
-        BuildpackBits.new(buildpack_guid, uploaded_path, filename)
+        BuildpackBits.new(buildpack_guid, uploaded_path)
       end
 
       it { is_expected.to be_a_valid_job }

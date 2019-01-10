@@ -10,16 +10,18 @@ module VCAP::CloudController
 
     validates :bits_path, presence: { presence: true, message: 'A buildpack zip file must be uploaded' }
     validate :bits_path_in_tmpdir
-    validates :bits_name, presence: { presence: true, message: 'A buildpack filename must be provided' }
-    validate :is_zip
 
     def self.create_from_params(params)
       opts = params.dup.symbolize_keys
 
-      if opts.key?(VCAP::CloudController::Constants::INVALID_NGINX_UPLOAD_PARAM.to_sym)
+      if opts.key?(VCAP::CloudController::Constants::NGINX_UPLOAD_MODULE_DUMMY.to_sym)
         raise MissingFilePathError.new('File field missing path information')
       end
 
+      if opts[:bits].present?
+        opts[:bits_path] = opts[:bits].tempfile.path
+        opts.delete(:bits)
+      end
 
       BuildpackUploadMessage.new(opts)
     end
@@ -41,12 +43,6 @@ module VCAP::CloudController
 
     def tmpdir
       VCAP::CloudController::Config.config.get(:directories, :tmpdir)
-    end
-
-    def is_zip
-      return unless bits_name
-
-      errors.add(:bits_name, 'is not a zip') unless File.extname(bits_name) == '.zip'
     end
   end
 end

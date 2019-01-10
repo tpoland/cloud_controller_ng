@@ -4,10 +4,9 @@ module VCAP::CloudController
   module Jobs
     module V3
       class BuildpackBits
-        def initialize(buildpack_guid, buildpack_bits_path, buildpack_bits_name)
+        def initialize(buildpack_guid, buildpack_bits_path)
           @buildpack_guid     = buildpack_guid
           @file_path = buildpack_bits_path
-          @file_name = buildpack_bits_name
         end
 
         def perform
@@ -16,7 +15,7 @@ module VCAP::CloudController
           buildpack_blobstore = CloudController::DependencyLocator.instance.buildpack_blobstore
           buildpack = Buildpack.find(guid: buildpack_guid)
 
-          ::VCAP::CloudController::UploadBuildpack.new(buildpack_blobstore).upload_buildpack(buildpack, file_path, file_name)
+          ::VCAP::CloudController::UploadBuildpack.new(buildpack_blobstore).upload_buildpack(buildpack, file_path, File.basename(file_path))
         end
 
         def job_name_in_configuration
@@ -29,7 +28,7 @@ module VCAP::CloudController
 
         private
 
-        attr_reader :buildpack_guid, :file_path, :file_name
+        attr_reader :buildpack_guid, :file_path
       end
     end
   end

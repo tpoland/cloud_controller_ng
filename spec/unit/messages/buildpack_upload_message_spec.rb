@@ -6,18 +6,15 @@ module VCAP::CloudController
     before { TestConfig.override(directories: { tmpdir: '/tmp/' }) }
 
     describe 'validations' do
+      let(:opts) { { bits_path: '/tmp/foobar' } }
 
-      context "when the path and name are provided correctly" do
-        let(:opts) { { bits_path: '/tmp/foobar', bits_name: 'buildpack.zip' } }
-
-        it 'is valid' do
-          upload_message = BuildpackUploadMessage.new(opts)
-          expect(upload_message).to be_valid
-        end
+      it 'is valid' do
+        upload_message = BuildpackUploadMessage.new(opts)
+        expect(upload_message).to be_valid
       end
 
       context 'when the path is relative' do
-        let(:opts) { { bits_path: '../tmp/mango/pear', bits_name: 'buildpack.zip'} }
+        let(:opts) { { bits_path: '../tmp/mango/pear' } }
 
         it 'is valid' do
           upload_message = BuildpackUploadMessage.new(opts)
@@ -65,26 +62,6 @@ module VCAP::CloudController
           expect(message.errors.full_messages[0]).to include('Bits path is invalid')
         end
       end
-
-      context 'when the bits name is not provided' do
-        let(:opts) {{bits_path: '/tmp/bar'}}
-
-        it ' is not valid' do
-          upload_message = BuildpackUploadMessage.new(opts)
-          expect(upload_message).not_to be_valid
-          expect(upload_message.errors[:bits_name]).to include('A buildpack filename must be provided')
-        end
-      end
-
-      context 'when the file is not a zip' do
-        let(:opts) {{bits_path: '/tmp/bar', bits_name: 'buildpack.tgz'}}
-
-        it ' is not valid' do
-          upload_message = BuildpackUploadMessage.new(opts)
-          expect(upload_message).not_to be_valid
-          expect(upload_message.errors.full_messages[0]).to include('Bits name is not a zip')
-        end
-      end
     end
 
     describe '#bits_path=' do
@@ -107,21 +84,19 @@ module VCAP::CloudController
     end
 
     describe '.create_from_params' do
-      let(:params) { { 'bits_path' => '/tmp/foobar', 'bits_name' => 'buildpack.zip' } }
+      let(:params) { { 'bits_path' => '/tmp/foobar' } }
 
       it 'returns the correct BuildpackUploadMessage' do
         message = BuildpackUploadMessage.create_from_params(params)
 
         expect(message).to be_a(BuildpackUploadMessage)
         expect(message.bits_path).to eq('/tmp/foobar')
-        expect(message.bits_name).to eq('buildpack.zip')
       end
 
       it 'converts requested keys to symbols' do
         message = BuildpackUploadMessage.create_from_params(params)
 
         expect(message.requested?(:bits_path)).to be_truthy
-        expect(message.requested?(:bits_name)).to be_truthy
       end
 
       context 'when the <ngnix_upload_module_dummy> param is set' do
@@ -131,6 +106,18 @@ module VCAP::CloudController
           expect {
             BuildpackUploadMessage.create_from_params(params)
           }.to raise_error(BuildpackUploadMessage::MissingFilePathError, 'File field missing path information')
+        end
+      end
+
+      context 'when rack is handling the file upload' do
+        let(:file) { instance_double(ActionDispatch::Http::UploadedFile, tempfile: instance_double(Tempfile, path: '/tmp/foobar')) }
+        let(:params) { { 'bits' => file } }
+
+        it 'returns the correct BuildpackUploadMessage' do
+          message = BuildpackUploadMessage.create_from_params(params)
+
+          expect(message).to be_a(BuildpackUploadMessage)
+          expect(message.bits_path).to eq('/tmp/foobar')
         end
       end
     end
