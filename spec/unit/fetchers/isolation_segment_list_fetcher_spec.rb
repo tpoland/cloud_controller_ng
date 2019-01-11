@@ -6,7 +6,7 @@ require 'fetchers/isolation_segment_list_fetcher'
 module VCAP::CloudController
   RSpec.describe IsolationSegmentListFetcher do
     let(:filters) { {} }
-    let(:message) { IsolationSegmentsListMessage.new(filters) }
+    let(:message) { IsolationSegmentsListMessage.from_params(filters) }
     subject(:fetcher) { IsolationSegmentListFetcher.new(message: message) }
 
     let!(:isolation_segment_model_1) { VCAP::CloudController::IsolationSegmentModel.make }
