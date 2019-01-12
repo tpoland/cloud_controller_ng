@@ -179,6 +179,12 @@ module VCAP::CloudController
       current_droplet.try(:checksum)
     end
 
+    def actual_droplet
+      return current_droplet unless revisions_enabled?
+
+      revision&.droplet || current_droplet
+    end
+
     def package_updated_at
       latest_package.try(:created_at)
     end
