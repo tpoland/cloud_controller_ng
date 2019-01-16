@@ -73,9 +73,9 @@ module UserHelpers
     when 'admin'
       set_current_user_as_admin(user: current_user, scopes: scopes || [])
     when 'admin_read_only'
-      set_current_user_as_admin_read_only(user: current_user, scopes: scopes || [])
+      set_current_user_as_admin_read_only(user: current_user, scopes: scopes || %w(cloud_controller.read cloud_controller.write))
     when 'global_auditor'
-      set_current_user_as_global_auditor(user: current_user, scopes: scopes || [])
+      set_current_user_as_global_auditor(user: current_user, scopes: scopes || %w(cloud_controller.read cloud_controller.write))
     when 'space_developer'
       space.add_developer(current_user)
       set_current_user_as_reader_and_writer(user: current_user)
