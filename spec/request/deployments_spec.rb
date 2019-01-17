@@ -10,10 +10,13 @@ RSpec.describe 'Deployments' do
   let(:user_email) { Sham.email }
   let(:user_name) { 'some-username' }
   let(:metadata) { { 'labels' => {}, 'annotations' => {} } }
+  let(:runner) { instance_double(VCAP::CloudController::Diego::Runner) }
 
   before do
     TestConfig.override(temporary_disable_deployments: false)
     app_model.update(droplet_guid: droplet.guid)
+    allow(VCAP::CloudController::Diego::Runner).to receive(:new).and_return(runner)
+    allow(runner).to receive(:start)
   end
 
   describe 'POST /v3/deployments' do

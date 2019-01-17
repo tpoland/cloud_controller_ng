@@ -10,6 +10,12 @@ RSpec.describe DeploymentsController, type: :controller do
   let(:app_guid) { app.guid }
   let(:space) { app.space }
   let(:org) { space.organization }
+  let(:runner) { instance_double(VCAP::CloudController::Diego::Runner) }
+
+  before do
+    allow(VCAP::CloudController::Diego::Runner).to receive(:new).and_return(runner)
+    allow(runner).to receive(:start)
+  end
 
   describe '#create' do
     before do

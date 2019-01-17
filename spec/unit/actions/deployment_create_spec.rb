@@ -26,6 +26,9 @@ module VCAP::CloudController
     })}
 
     before do
+      allow(VCAP::CloudController::Diego::Runner).to receive(:new).and_return(runner)
+      allow(runner).to receive(:start)
+
       app.update(droplet: original_droplet)
     end
 
@@ -43,6 +46,7 @@ module VCAP::CloudController
           expect(deployment.droplet_guid).to eq(next_droplet.guid)
           expect(deployment.previous_droplet).to eq(original_droplet)
           expect(deployment.original_web_process_instance_count).to eq(3)
+          expect(runner).to have_received(:start)
         end
 
         it 'creates a revision associated with the provided droplet' do
@@ -85,15 +89,6 @@ module VCAP::CloudController
           expect(deploying_web_process.enable_ssh).to eq(web_process.enable_ssh)
           expect(deploying_web_process.ports).to eq(web_process.ports)
           expect(deploying_web_process.revision).to eq(app.latest_revision)
-        end
-
-        it 'desires an LRP via the ProcessObserver', isolation: :truncation do
-          allow(runner).to receive(:start)
-          allow(VCAP::CloudController::Diego::Runner).to receive(:new).and_return(runner)
-
-          DeploymentCreate.create(app: app, message: restart_message, user_audit_info: user_audit_info)
-
-          expect(runner).to have_received(:start).at_least(:once)
         end
 
         context 'when there are multiple web processes' do

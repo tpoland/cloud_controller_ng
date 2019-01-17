@@ -46,12 +46,19 @@ module VCAP::CloudController
 
           process = create_deployment_process(app, deployment.guid, web_process)
           deployment.update(deploying_web_process: process)
+
+          process.skip_process_observer_on_update = true
+          runner_for_process(process).start
         end
         record_audit_event(deployment, droplet, user_audit_info)
         deployment
       end
 
       private
+
+      def runner_for_process(process)
+        Runners.new(Config.config).runner_for_process(process)
+      end
 
       def choose_desired_droplet(app, droplet_guid, revision_guid)
         if droplet_guid
@@ -79,9 +86,6 @@ module VCAP::CloudController
           process_type: process.type
         )
 
-        # Need to transition from STOPPED to STARTED to engage the ProcessObserver to desire the LRP
-        process.reload.update(state: ProcessModel::STARTED)
-
         process
       end
 
@@ -89,7 +93,7 @@ module VCAP::CloudController
         ProcessModel.create(
           app: app,
           type: ProcessTypes::WEB,
-          state: ProcessModel::STOPPED,
+          state: ProcessModel::STARTED,
           instances: 1,
           command: web_process.command,
           memory: web_process.memory,
