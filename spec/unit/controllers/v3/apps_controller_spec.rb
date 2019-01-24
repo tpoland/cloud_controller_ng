@@ -2033,8 +2033,6 @@ RSpec.describe AppsV3Controller, type: :controller do
           it "returns #{expected_return_value}" do
             set_current_user_as_role(role: role, org: org, space: space, user: user)
 
-            patch :update_environment_variables, params: { guid: app_model.guid }.merge(request_body), as: :json
-
             expect(response.status).to eq(expected_return_value), response.body
             if expected_return_value == 200
               expect(parsed_body).to eq(expected_success_response)
