@@ -96,7 +96,7 @@ module VCAP::CloudController
       end
 
       def truncated_backtrace_from_error(error)
-        error.backtrace.present? ? error.backtrace[0..9].join("\n") + "\n..." : ''
+        error.backtrace.present? ? error.backtrace.join("\n") : ''
       end
 
       def batched_processes
