@@ -14,10 +14,12 @@ module VCAP::CloudController
             links: build_links
           }
 
-          if !app.environment_variables.nil?
-            app.environment_variables.each do |key, value|
-              result[:var][key.to_sym] = value
-            end
+          populate_var(result, app&.environment_variables)
+        end
+
+        def self.populate_var(result, env_vars)
+          env_vars&.each do |key, value|
+            result[:var][key.to_sym] = value
           end
 
           result
