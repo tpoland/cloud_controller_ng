@@ -20,7 +20,14 @@ module VCAP::CloudController
     set_field_as_encrypted :environment_variables, column: :encrypted_environment_variables
     serializes_via_json :environment_variables
 
-    set_field_as_encrypted :commands_by_process_type, column: :encrypted_commands_by_process_type
-    serializes_via_json :commands_by_process_type
+    one_to_many :revision_process_commands, class: 'VCAP::CloudController::RevisionProcessCommandModel', key: :revision_guid, primary_key: :guid
+
+    def commands_by_process_type
+      revision_process_commands.map { |p| [p.process_type, p.process_command] }.to_h
+    end
+
+    def command_for_process_type(process_type)
+      revision_process_commands_dataset.first(process_type: process_type)&.process_command
+    end
   end
 end
