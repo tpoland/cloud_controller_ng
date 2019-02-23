@@ -17,15 +17,7 @@ module VCAP::CloudController
             environment_variables: app.environment_variables
           )
 
-          app.processes.each do |process|
-            if process.command.present?
-              RevisionProcessCommandModel.create(
-                revision_guid: revision.guid,
-                process_type: process.type,
-                process_command: process.command
-              )
-            end
-          end
+          app.processes.each { |p| revision.add_command_for_process_type(p.type, p.command) }
 
           record_audit_event(revision, user_audit_info)
 
