@@ -118,6 +118,9 @@ Rails.application.routes.draw do
   get '/organizations/:guid/relationships/default_isolation_segment', to: 'organizations_v3#show_default_isolation_segment'
   patch '/organizations/:guid/relationships/default_isolation_segment', to: 'organizations_v3#update_default_isolation_segment'
 
+  # resource_match
+  post '/resource_match', to: 'resource_match#create'
+
   # route_mappings
   post '/route_mappings', to: 'route_mappings#create'
   patch '/route_mappings/:route_mapping_guid', to: 'route_mappings#update'

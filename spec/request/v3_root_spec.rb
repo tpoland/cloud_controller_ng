@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe 'App Features' do
+RSpec.describe 'v3 root' do
   describe 'GET /v3' do
     it 'returns a list of links to resources available on the v3 API' do
       get '/v3'
