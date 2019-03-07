@@ -86,6 +86,7 @@ module VCAP::CloudController
               "app:#{process.app.guid}"
             ]
           ),
+          sidecars: [SidecarProcess.new(sidecar)],
           image_username:                   process.desired_droplet.docker_receipt_username,
           image_password:                   process.desired_droplet.docker_receipt_password,
         )
@@ -169,16 +170,28 @@ module VCAP::CloudController
         proto_volume_mounts
       end
 
-      def generate_app_action(start_command, user, environment_variables)
-        launcher_args = ['app', start_command || '', process.execution_metadata]
+      def generate_sidecar_action(user, sidecar_command, environment_variables)
+        launcher_args = ['app', sidecar_command, process.execution_metadata]
 
         action(::Diego::Bbs::Models::RunAction.new(
                  user:            user,
                  path:            '/tmp/lifecycle/launcher',
-                 args:            launcher_args,
+                 args:            launcher_args, # ["sidecar", user_configured_command, process.execution_metadata]
                  env:             environment_variables,
-                 log_source:      "APP/PROC/#{process.type.upcase}",
-                 resource_limits: ::Diego::Bbs::Models::ResourceLimits.new(nofile: file_descriptor_limit),
+                 log_source:      "APP/SIDECAR",
+        ))
+      end
+
+      def generate_app_action(start_command, user, environment_variables)
+        launcher_args = ['app', start_command || '', process.execution_metadata]
+
+        action(::Diego::Bbs::Models::RunAction.new(
+          user: user,
+          path: '/tmp/lifecycle/launcher',
+          args: launcher_args,
+          env: environment_variables,
+          log_source: "APP/PROC/#{process.type.upcase}",
+          resource_limits: ::Diego::Bbs::Models::ResourceLimits.new(nofile: file_descriptor_limit),
         ))
       end
 
@@ -219,7 +232,11 @@ module VCAP::CloudController
         )
 
         actions << generate_ssh_action(lrp_builder.action_user, environment_variables) if allow_ssh?
-        codependent(actions)
+        main_action = codependent(actions)
+
+        sidecars = JSON.parse(process.desired_droplet.sidecars)
+        return parallel([main_action, generate_sidecar_action(lrp_builder.action_user, sidecars['web'], environment_variables)]) if sidecars
+        return main_action
       end
 
       def generate_healthcheck_definition(lrp_builder)

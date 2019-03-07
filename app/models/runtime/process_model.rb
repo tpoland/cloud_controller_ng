@@ -40,6 +40,10 @@ module VCAP::CloudController
     one_to_many :labels, class: 'VCAP::CloudController::ProcessLabelModel', key: :resource_guid, primary_key: :guid
     one_to_many :annotations, class: 'VCAP::CloudController::ProcessAnnotationModel', key: :resource_guid, primary_key: :guid
 
+    one_to_one :sidecar, class: 'VCAP::CloudController::SidecarModel',
+      key: :process_guid,
+      primary_key: :guid
+
     one_through_one :space,
       join_table:        AppModel.table_name,
       left_primary_key:  :app_guid, left_key: :guid,

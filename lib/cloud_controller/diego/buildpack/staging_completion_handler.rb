@@ -68,6 +68,7 @@ module VCAP::CloudController
             droplet.mark_as_staged
             build.mark_as_staged
             droplet.process_types      = payload[:result][:process_types]
+            droplet.sidecars           = payload[:result][:sidecars]
             droplet.execution_metadata = payload[:result][:execution_metadata]
             build.save_changes(raise_on_save_failure: true)
             droplet.save_changes(raise_on_save_failure: true)
