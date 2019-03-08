@@ -433,7 +433,13 @@ module VCAP::CloudController
 
       context 'when a revision is provided on the message (rollback)' do
         let(:revision_droplet) { DropletModel.make(app: app, process_types: { 'web' => '1234' }) }
-        let!(:revision) { RevisionModel.make(droplet_guid: revision_droplet.guid, environment_variables: { 'foo' => 'var' }, version: 3) }
+        let!(:revision) {
+          RevisionModel.make(
+            droplet_guid: revision_droplet.guid,
+            environment_variables: { 'foo' => 'var' },
+            version: 3
+          )
+        }
         let(:message) {
           DeploymentCreateMessage.new({
             relationships: { app: { data: { guid: app.guid } } },
@@ -481,6 +487,20 @@ module VCAP::CloudController
           DeploymentCreate.create(app: app, message: message, user_audit_info: user_audit_info)
 
           expect(app.environment_variables).to eq({ 'foo' => 'var' })
+        end
+
+        context 'when the revision has associated process commands' do
+          let!(:revision_process_command) { VCAP::CloudController::RevisionProcessCommandModel.make(
+            revision_guid: revision.guid,
+            process_type: 'web',
+            process_command: 'bundle exec earlier_app',
+          )}
+
+          it 'sets the process command of the new web process to that of the associated revision' do
+            DeploymentCreate.create(app: app, message: message, user_audit_info: user_audit_info)
+
+            expect(app.newest_web_process.command).to eq('bundle exec earlier_app')
+          end
         end
 
         it 'creates a revision associated with the environment variables of the associated revision' do

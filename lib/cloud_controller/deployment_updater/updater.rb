@@ -150,6 +150,7 @@ module VCAP::CloudController
             config: Config.config,
             stop_in_runtime: true,
             revision: deploying_web_process.revision,
+            # TODO: this is prolly where they get the revision's commands
           )
         end
       end

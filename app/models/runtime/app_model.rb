@@ -132,7 +132,7 @@ module VCAP::CloudController
       reload.revisions.last if revisions_enabled
     end
 
-    def can_create_revision?
+    def can_create_revision? # oh no, the order here gets bad with process commands
       !revision_reason.empty?
     end
 
@@ -173,7 +173,9 @@ module VCAP::CloudController
     end
 
     def commands_by_process_type
-      processes.map { |p| [p.type, p.command] }.to_h
+      processes.
+        select{ |p| p.type != 'web' || p == oldest_web_process }.
+        map{ |p| [p.type, p.command] }.to_h
     end
 
     private

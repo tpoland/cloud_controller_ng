@@ -41,6 +41,13 @@ module VCAP::CloudController
           MetadataUpdate.update(deployment, message)
 
           process = create_deployment_process(app, deployment.guid, web_process, new_revision)
+          target_state.apply_to_process(process)
+
+          # Need to transition from STOPPED to STARTED to engage the ProcessObserver to desire the LRP.
+          # It'd be better to do this via Diego::Runner.new(process, config).start,
+          # but it is nontrivial to get that working.
+          process.reload.update(state: ProcessModel::STARTED)
+
           deployment.update(deploying_web_process: process)
         end
         record_audit_event(deployment, target_state.droplet, user_audit_info, message)
@@ -56,9 +63,6 @@ module VCAP::CloudController
           process_guid: process.guid,
           process_type: process.type
         )
-
-        # Need to transition from STOPPED to STARTED to engage the ProcessObserver to desire the LRP
-        process.reload.update(state: ProcessModel::STARTED)
 
         process
       end
@@ -120,6 +124,7 @@ module VCAP::CloudController
                    AppDropletSource.new(app.droplet).get
                  end
       @environment_variables = revision ? revision.environment_variables : app.environment_variables
+      @commands_by_process_type = revision ? revision.commands_by_process_type : app.commands_by_process_type
     end
 
     def apply_to_app(app, user_audit_info)
@@ -134,6 +139,14 @@ module VCAP::CloudController
 
         app.update(environment_variables: @environment_variables)
         app.save
+      end
+    end
+
+    def apply_to_process(process)
+      process.db.transaction do
+        process.lock!
+
+        process.update(command: @commands_by_process_type[process.type])
       end
     end
   end

@@ -254,6 +254,32 @@ RSpec.describe DeploymentsController, type: :controller do
           expect(VCAP::CloudController::RevisionModel.last.droplet_guid).to eq(droplet.guid)
         end
 
+        context 'when the provided revision specifies start commands' do
+          let!(:earlier_revision) { VCAP::CloudController::RevisionModel.make(
+            app: app,
+            droplet_guid: newer_droplet.guid, # same droplet as currently associated revision
+            created_at: 5.days.ago,
+            version: 2
+          ) }
+
+          let!(:earlier_revision_process_command) { VCAP::CloudController::RevisionProcessCommandModel.make(
+            process_type: 'web',
+            revision_guid: earlier_revision.guid,
+            process_command: 'bundle exec earlier_app',
+          )}
+
+          it 'uses the droplet from the revision to create a new revision' do
+            expect(VCAP::CloudController::DeploymentCreate).
+              to receive(:create).and_call_original
+
+            expect {
+              post :create, params: request_body, as: :json
+            }.to change { VCAP::CloudController::RevisionModel.count }.by(1)
+            expect(VCAP::CloudController::RevisionModel.last.process_commands).to contain_exactly(earlier_revision_process_command)
+          end
+
+        end
+
         it 'returns a 422 and an error if the revision does not exist' do
           earlier_revision.delete
           post :create, params: request_body, as: :json
