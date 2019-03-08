@@ -37,14 +37,9 @@ Name     | Type     | Description
 
 #### Optional Parameters
 
-Name         | Type      | Description                                                                    | Default
------------  | --------  | -----------------------------------------------------------------------------  | -------
-**stack**    | _string_  | The name of the stack that the domain will use.                             | null
-**position** | _integer_ | The order in which the domains are checked during domain auto-detection. | 1
-**enabled**  | _boolean_ | Whether or not the domain will be used for staging                          | true
-**locked**   | _boolean_ | Whether or not the domain is locked to prevent updating the bits            | false
-**metadata.labels** _(experimental)_| [_label object_](#labels) | Labels applied to the domain.
-**metadata.annotations** _(experimental)_ | [_annotation object_](#annotations) | Annotations applied to the domain. |
+Name         | Type      | Description                                                               | Default
+-----------  | --------  | ------------------------------------------------------------------------  | -------
+**internal** | _boolean_ | Whether the domain is used for internal (container-to-container) traffic. | false
 
 #### Permitted Roles
 
