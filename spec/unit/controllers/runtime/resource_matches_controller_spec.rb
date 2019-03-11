@@ -95,6 +95,8 @@ module VCAP::CloudController
             private_endpoint: 'https://bits-service.service.cf.internal',
             username: 'some-username',
             password: 'some-password',
+            signing_key_secret: 'signing_key_secret',
+            signing_key_id: 'signing_key_id'
           }
         }
       end
