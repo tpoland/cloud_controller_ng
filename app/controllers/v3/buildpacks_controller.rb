@@ -17,7 +17,7 @@ class BuildpacksController < ApplicationController
     dataset = BuildpackListFetcher.new.fetch_all(message)
 
     render status: :ok, json: Presenters::V3::PaginatedListPresenter.new(
-      presenter: Presenters::V3::BuildpackPresenter,
+      presenter: Presenters::V3::BuildpackPresenter(permission_queryer.can_write_globally?),
       paginated_result: SequelPaginator.new.get_page(dataset, message.try(:pagination_options)),
       path: '/v3/buildpacks',
       message: message
@@ -28,7 +28,7 @@ class BuildpacksController < ApplicationController
     buildpack = Buildpack.find(guid: hashed_params[:guid])
     buildpack_not_found! unless buildpack
 
-    render status: :ok, json: Presenters::V3::BuildpackPresenter.new(buildpack)
+    render status: :ok, json: Presenters::V3::BuildpackPresenter.new(permission_queryer.can_write_globally?, buildpack)
   end
 
   def create
