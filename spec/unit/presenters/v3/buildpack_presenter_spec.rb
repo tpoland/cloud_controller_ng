@@ -5,6 +5,7 @@ RSpec.describe VCAP::CloudController::Presenters::V3::BuildpackPresenter do
   let(:buildpack) {VCAP::CloudController::Buildpack.make}
 
   describe '#to_hash' do
+    let(:can_upload) { true }
     let(:result) {described_class.new(can_upload, buildpack).to_hash}
 
     describe 'links' do
@@ -42,9 +43,9 @@ RSpec.describe VCAP::CloudController::Presenters::V3::BuildpackPresenter do
         context 'when the user does have write permissions' do
           let(:can_upload) { true }
 
-          it 'does not display an upload link' do
+          it 'does display a bits service upload link' do
             expect(result[:links][:upload][:method]).to eq('POST')
-            expect(result[:links][:upload][:href]).to match(%r{http://my-endpoint\.com/buildpacks/\?signature=\w+&expires=\d+&AccessKeyId=key-id&async=true&verb=put})
+            expect(result[:links][:upload][:href]).to match(%r{http://my-endpoint\.com/buildpacks/?\?signature=\w+&expires=\d+&AccessKeyId=key-id&async=true&verb=post})
           end
         end
       end

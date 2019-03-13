@@ -124,10 +124,8 @@ class BuildpacksController < ApplicationController
       end
     rescue Sequel::ValidationFailed
       raise_translated_api_error(buildpack)
-    rescue Sequel::Error
-      BuildpackBitsDelete.delete_when_safe(new_key, 0)
-      return false
     end
+    # TODO call to bits to persist the buildpack
     render status: :ok, json: Presenters::V3::BuildpackPresenter.new(permission_queryer.can_write_globally?, buildpack)
   end
 

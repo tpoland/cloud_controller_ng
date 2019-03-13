@@ -26,7 +26,9 @@ module CloudController
         :blob,
         :files_for,
         :root_dir,
-        :get_buildpack_metadata
+        # TODO what should we do about some methods only being used for bits?
+        :get_buildpack_metadata,
+        :public_upload_url
     end
   end
 end

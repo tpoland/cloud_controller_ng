@@ -61,7 +61,7 @@ module VCAP::CloudController::Presenters::V3
     def bits_service_upload_link
       return nil unless @display_bits_service_url
 
-      {href: bits_service_client.blob('').public_upload_url, method: 'POST'}
+      { href: bits_service_client.public_upload_url(:buildpacks, 'POST'), method: 'POST' }
     end
 
     def bits_service_client
