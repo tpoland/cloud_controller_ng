@@ -39,7 +39,7 @@ class BuildpacksController < ApplicationController
 
     buildpack = BuildpackCreate.new.create(message)
 
-    render status: :created, json: Presenters::V3::BuildpackPresenter.new(buildpack)
+    render status: :created, json: Presenters::V3::BuildpackPresenter.new(permission_queryer.can_write_globally?, buildpack)
   rescue BuildpackCreate::Error => e
     unprocessable!(e)
   end
@@ -69,7 +69,7 @@ class BuildpacksController < ApplicationController
 
     buildpack = VCAP::CloudController::BuildpackUpdate.new.update(buildpack, message)
 
-    render status: :ok, json: Presenters::V3::BuildpackPresenter.new(buildpack)
+    render status: :ok, json: Presenters::V3::BuildpackPresenter.new(permission_queryer.can_write_globally?, buildpack)
   rescue BuildpackUpdate::Error => e
     unprocessable!(e)
   end
@@ -93,9 +93,42 @@ class BuildpacksController < ApplicationController
 
     url_builder = VCAP::CloudController::Presenters::ApiUrlBuilder.new
     response.set_header('Location', url_builder.build_url(path: "/v3/jobs/#{pollable_job.guid}"))
-    render status: :accepted, json: Presenters::V3::BuildpackPresenter.new(buildpack)
+    render status: :accepted, json: Presenters::V3::BuildpackPresenter.new(permission_queryer.can_write_globally?, buildpack)
   rescue VCAP::CloudController::BuildpackUploadMessage::MissingFilePathError => e
     unprocessable!(e.message)
+  end
+
+  # TODO EARLY RETURN IF BITS SERVICE IS NOT ENABLED
+  def associate_bits
+    buildpack = Buildpack.find(guid: hashed_params[:guid])
+    buildpack_not_found! unless buildpack
+
+    unauthorized! unless permission_queryer.can_write_globally?
+
+    # TODO CREATE MESSAGE
+
+    # TODO MOVE TO ACTION
+    buildpack_blobstore = CloudController::DependencyLocator.instance.buildpack_blobstore
+
+    metadata = buildpack_blobstore.get_buildpack_metadata(params['bits_guid'])
+
+    begin
+      Buildpack.db.transaction do
+        Locking[name: 'buildpacks'].lock!
+        buildpack.update(
+          key: metadata[:key],
+          filename: metadata[:filename],
+          sha256_checksum: metadata[:sha256],
+          stack: metadata[:stack]
+        )
+      end
+    rescue Sequel::ValidationFailed
+      raise_translated_api_error(buildpack)
+    rescue Sequel::Error
+      BuildpackBitsDelete.delete_when_safe(new_key, 0)
+      return false
+    end
+    render status: :ok, json: Presenters::V3::BuildpackPresenter.new(permission_queryer.can_write_globally?, buildpack)
   end
 
   private
@@ -106,5 +139,17 @@ class BuildpacksController < ApplicationController
 
   def combine_messages(messages)
     unprocessable!("Uploaded buildpack file is invalid: #{messages.join(', ')}")
+  end
+
+  def raise_translated_api_error(buildpack)
+    if buildpack.errors.on([:name, :stack]).try(:include?, :unique)
+      raise CloudController::Errors::ApiError.new_from_details('BuildpackNameStackTaken', buildpack.name, buildpack.stack)
+    end
+    if buildpack.errors.on(:stack).try(:include?, :buildpack_cant_change_stacks)
+      raise CloudController::Errors::ApiError.new_from_details('BuildpackStacksDontMatch', buildpack.stack, buildpack.initial_value(:stack))
+    end
+    if buildpack.errors.on(:stack).try(:include?, :buildpack_stack_does_not_exist)
+      raise CloudController::Errors::ApiError.new_from_details('BuildpackStackDoesNotExist', buildpack.stack)
+    end
   end
 end
