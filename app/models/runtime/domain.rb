@@ -88,7 +88,36 @@ module VCAP::CloudController
       validates_length_range 3..MAXIMUM_FQDN_DOMAIN_LENGTH, :name, message: "must be no more than #{MAXIMUM_FQDN_DOMAIN_LENGTH} characters"
 
       errors.add(:name, :overlapping_domain) if name_overlaps?
-      errors.add(:name, :route_conflict) if routes_match?
+      # Here we want to add an error that reference a value from
+      #   Domain::Decorator.new(name: <domain-name>).intermediate_domains
+      # If any of these intermediate_domains end up matching an existing route, that's when we want to raise an error,
+      # and be explicit in the error message about which route was conflicting with the current Domain :name.
+      #
+      # This approach is not a great design.  Conceptually, we want to be able to do:
+      #   errors.add(:name, :route_conflict, conflicting_name)
+      # Note that conceptually this `conflicting_name` in scope in Domain#routes_match?.
+      #
+      # Maybe we can do something like write a custom validation method with a Proc and take the `conflicting_name` on
+      # the Proc to customize the error message.
+      if domains_matching_routes.any?
+        errors.add(
+            #:name, :route_conflict
+            :name, route_conflict_error_for_domain(domains_matching_routes.first.name)
+          )
+      end
+    end
+
+    # Does v2 rely on [:unique, :overlapping_domain, :route_conflict] being present on the Errors object?
+    # # It seems to rely on :unique here: https://github.com/cloudfoundry/cloud_controller_ng/blob/eaf95d439291e96b17c2e9eb3e5c2fae7072c144/app/controllers/runtime/domains_controller.rb#L14
+    # But possibly not :overlapping_domain or :route_conflict
+    # However changing the how we surface the error for :unique is not an option because that would be a breaking change
+    # for v2.
+    #
+    # Also the model is not a good place to directly raise presentation-like error messages.
+    # This should be done in the DomainCreate class layer if possible, which will isolate this change to v3 only.
+    #
+    def route_conflict_error_for_domain(conflicting_domain_name)
+      error!("The domain name \"#{conflicting_domain_name}\" is already reserved by another domain or route.")
     end
 
     def self.user_visibility_filter(user)
@@ -155,6 +184,16 @@ module VCAP::CloudController
       domain = CloudController::DomainDecorator.new(name)
       domain.intermediate_domains.any? { |intermediate_domain| does_route_exist?(intermediate_domain) }
     end
+
+    def domains_matching_routes
+      # If we end up using this, it may be worth writing a test to cover this pending change below.
+      #return [] unless name
+      return false unless name
+
+      domain = CloudController::DomainDecorator.new(name)
+      domain.intermediate_domains.select { |intermediate_domain| does_route_exist?(intermediate_domain) }
+    end
+
 
     def does_route_exist?(domain)
       return false unless domain.valid_format?

@@ -82,6 +82,19 @@ module VCAP::CloudController
               subject.create(message: message)
             }.to raise_error(DomainCreate::Error, "The domain name \"#{domain}\" is already reserved by another domain or route.")
           end
+
+          context 'when a route exists with the same "super"-domain' do
+            let(:existing_domain) { SharedDomain.make(name: 'base.domain') }
+            let(:route) { Route.make(domain: existing_domain) }
+            let(:route_fqdn) { route.fqdn }
+            let(:message) {DomainCreateMessage.new( {name: "something.#{route_fqdn}"} )}
+
+            it 'raises an error that references the existing super-domain' do
+              expect {
+                subject.create(message: message)
+              }.to raise_error(DomainCreate::Error, "The domain name \"#{route_fqdn}\" is already reserved by another domain or route.")
+            end
+          end
         end
       end
     end
