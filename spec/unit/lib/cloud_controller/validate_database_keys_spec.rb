@@ -98,6 +98,86 @@ module VCAP::CloudController
         end
       end
 
+      context 'when some rows have empty strings as labels' do
+        before do
+          app1.update(encryption_key_label: 'encryption_key_label_1')
+          app2.update(encryption_key_label: '')
+          service_binding.update(encryption_key_label: '')
+          service_instance.update(encryption_key_label: 'encryption_key_label_1')
+        end
+
+        context 'when both the db_encryption_key and custom encryption_keys are present' do
+          let(:config) { Config.new(initial_db_encryption_part.merge(next_db_encryption_part)) }
+          it 'can decrypt all the rows' do
+            expect {
+              ValidateDatabaseKeys.can_decrypt_all_rows!(config)
+            }.not_to raise_error
+          end
+        end
+
+        context 'when only the db_encryption_key is present' do
+          let(:config) { Config.new(initial_db_encryption_part) }
+
+          it 'raises an error' do
+            expect {
+              ValidateDatabaseKeys.can_decrypt_all_rows!(config)
+            }.to raise_error(ValidateDatabaseKeys::DatabaseEncryptionKeyMissingError,
+              /Encryption key\(s\) 'encryption_key_label_1' are still in use/)
+          end
+        end
+
+        context 'when only the database_encryption part is present' do
+          let(:config) { Config.new(next_db_encryption_part) }
+
+          it 'raises an error' do
+            expect {
+              ValidateDatabaseKeys.can_decrypt_all_rows!(config)
+            }.to raise_error(ValidateDatabaseKeys::DatabaseEncryptionKeyMissingError,
+              /Encryption key from 'cc.db_encryption_key'/)
+          end
+        end
+      end
+
+      context 'when some rows have NULL values as labels' do
+        before do
+          app1.update(encryption_key_label: 'encryption_key_label_1')
+          app2.update(encryption_key_label: nil)
+          service_binding.update(encryption_key_label: nil)
+          service_instance.update(encryption_key_label: 'encryption_key_label_1')
+        end
+
+        context 'when both the db_encryption_key and custom encryption_keys are present' do
+          let(:config) { Config.new(initial_db_encryption_part.merge(next_db_encryption_part)) }
+          it 'can decrypt all the rows' do
+            expect {
+              ValidateDatabaseKeys.can_decrypt_all_rows!(config)
+            }.not_to raise_error
+          end
+        end
+
+        context 'when only the db_encryption_key is present' do
+          let(:config) { Config.new(initial_db_encryption_part) }
+
+          it 'raises an error' do
+            expect {
+              ValidateDatabaseKeys.can_decrypt_all_rows!(config)
+            }.to raise_error(ValidateDatabaseKeys::DatabaseEncryptionKeyMissingError,
+              /Encryption key\(s\) 'encryption_key_label_1' are still in use/)
+          end
+        end
+
+        context 'when only the database_encryption part is present' do
+          let(:config) { Config.new(next_db_encryption_part) }
+
+          it 'raises an error' do
+            expect {
+              ValidateDatabaseKeys.can_decrypt_all_rows!(config)
+            }.to raise_error(ValidateDatabaseKeys::DatabaseEncryptionKeyMissingError,
+              /Encryption key from 'cc.db_encryption_key'/)
+          end
+        end
+      end
+
       context 'when all rows have a non-nil encryption_key_label' do
         before do
           app1.update(encryption_key_label: label1)

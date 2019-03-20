@@ -85,7 +85,7 @@ module VCAP::CloudController
 
       def rows_encrypted_with_original_key
         Encryptor.encrypted_classes.any? do |klass|
-          klass.constantize.find(encryption_key_label: ['', nil])
+          klass.constantize.where(encryption_key_label: '').or(encryption_key_label: nil).present?
         end
       end
 
