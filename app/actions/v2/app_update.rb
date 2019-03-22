@@ -89,7 +89,7 @@ module VCAP::CloudController
             relationships: relationships,
             data:          docker_data,
           })
-          PackageCreate.create_without_event(create_message)
+          PackageCreate.create_without_event(create_message, app)
         end
       end
 

@@ -5,11 +5,13 @@ module VCAP::CloudController
     class InvalidPackage < StandardError; end
 
     class << self
-      def create(message:, user_audit_info:, record_event: true)
+      def create(message:, app:, user_audit_info:, record_event: true)
         Steno.logger('cc.action.package_create').info("creating package type #{message.type} for app #{message.app_guid}")
 
+        verify_package_and_app_lifecycle_match!(message, app)
+
         package              = PackageModel.new
-        package.app_guid     = message.app_guid
+        package.app_guid     = app.guid
         package.type         = message.type
         package.state        = get_package_state(message)
 
@@ -31,8 +33,8 @@ module VCAP::CloudController
         raise InvalidPackage.new(e.message)
       end
 
-      def create_without_event(message)
-        create(message: message, user_audit_info: UserAuditInfo.new(user_guid: nil, user_email: nil), record_event: false)
+      def create_without_event(message, app)
+        create(message: message, app: app, user_audit_info: UserAuditInfo.new(user_guid: nil, user_email: nil), record_event: false)
       end
 
       private
@@ -46,6 +48,14 @@ module VCAP::CloudController
 
       def get_package_state(message)
         message.bits_type? ? PackageModel::CREATED_STATE : PackageModel::READY_STATE
+      end
+
+      def verify_package_and_app_lifecycle_match!(message, app)
+        if app.docker? && !message.docker_type?
+          raise InvalidPackage.new("Cannot set package type to 'bits' for a docker app")
+        elsif app.buildpack? && !message.bits_type?
+          raise InvalidPackage.new("Cannot set package type to 'docker' for a buildpack app")
+        end
       end
     end
   end

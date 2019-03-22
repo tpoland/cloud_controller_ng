@@ -67,7 +67,7 @@ module VCAP::CloudController
             relationships: relationships,
             data:          docker_data
           })
-          PackageCreate.create_without_event(create_message)
+          PackageCreate.create_without_event(create_message, app)
         else
           # it is important to create the lifecycle model with the app instead of doing app.buildpack_lifecycle_data_model = x
           # because mysql will deadlock when requests happen concurrently otherwise.

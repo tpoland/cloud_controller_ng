@@ -35,7 +35,7 @@ module VCAP::CloudController
 
       relationships  = { app: { data: { guid: process.app.guid } } }
       create_message = PackageCreateMessage.new({ type: 'bits', relationships: relationships })
-      package        = PackageCreate.create_without_event(create_message)
+      package        = PackageCreate.create_without_event(create_message, process.app)
 
       unless params['resources']
         missing_resources_message = 'missing :resources'

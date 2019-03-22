@@ -1123,6 +1123,7 @@ RSpec.describe PackagesController, type: :controller do
       end
 
       context 'docker' do
+        let(:app_model) { VCAP::CloudController::AppModel.make(:docker) }
         let(:image) { 'registry/image:latest' }
         let(:docker_username) { 'naruto' }
         let(:docker_password) { 'oturan' }

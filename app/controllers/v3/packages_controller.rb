@@ -141,7 +141,7 @@ class PackagesController < ApplicationController
       permission_queryer.can_read_from_space?(app.space.guid, app.organization.guid) &&
       permission_queryer.can_write_to_space?(app.space.guid)
 
-    PackageCreate.create(message: message, user_audit_info: user_audit_info)
+    PackageCreate.create(message: message, app: app, user_audit_info: user_audit_info)
   end
 
   def create_copy
