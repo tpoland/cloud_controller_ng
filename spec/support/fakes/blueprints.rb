@@ -569,4 +569,16 @@ module VCAP::CloudController
 
   RevisionProcessCommandModel.blueprint do
   end
+
+  SidecarModel.blueprint do
+    name { 'side_process' }
+    command { 'bundle exec rackup' }
+    app
+  end
+
+  SidecarProcessTypeModel.blueprint do
+    type { 'worker' }
+    sidecar
+  end
+
 end

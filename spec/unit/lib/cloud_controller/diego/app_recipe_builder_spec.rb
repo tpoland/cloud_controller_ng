@@ -318,6 +318,28 @@ module VCAP::CloudController
             end
           end
 
+          context 'when a process has a sidecar' do
+
+            let!(:sidecar) { SidecarModel.make(app: app_model, name: 'my_sidecar', command: 'athenz') }
+            let!(:sidecar_process_type) { SidecarProcessTypeModel.make(sidecar: sidecar, type: 'web' ) }
+
+            it 'includes the sidecar process as a codependent run action' do
+              lrp = builder.build_app_lrp
+
+              actions = lrp.action.codependent_action.actions.map(&:run_action)
+              expect(actions).to include(::Diego::Bbs::Models::RunAction.new(
+                  user:            'lrp-action-user',
+                  path:            '/tmp/lifecycle/launcher',
+                  args:            ['app', 'athenz'],
+                  resource_limits: ::Diego::Bbs::Models::ResourceLimits.new(nofile: expected_file_descriptor_limit),
+                  env:             expected_action_environment_variables,
+                  #log_source: 'CELL/SSHD',
+                )
+              )
+            end
+
+          end
+
           context 'when a volume mount is provided' do
             let(:service_instance) { ManagedServiceInstance.make space: app_model.space }
             let(:multiple_volume_mounts) do
@@ -367,17 +389,6 @@ module VCAP::CloudController
                   shared:        ::Diego::Bbs::Models::SharedDevice.new(volume_id: 'def', mount_config: ''),
                 ),
               ])
-            end
-          end
-
-          context 'when FileDescriptors is 0' do
-            before { process.file_descriptors = 0 }
-            let(:expected_file_descriptor_limit) { DEFAULT_FILE_DESCRIPTOR_LIMIT }
-
-            it 'uses the default File Descriptor Limit on the first run actions resource limits' do
-              lrp = builder.build_app_lrp
-              expect(lrp.action).to eq(expected_action)
-              expect(lrp.monitor).to eq(expected_monitor_action)
             end
           end
 
@@ -790,7 +801,7 @@ module VCAP::CloudController
               }))
             end
 
-            it 'includes the ssh daemon run action' do
+            it 'includes the ssh daemon process as a codependent run action' do
               lrp = builder.build_app_lrp
 
               actions = lrp.action.codependent_action.actions.map(&:run_action)
