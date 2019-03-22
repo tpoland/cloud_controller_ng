@@ -18,13 +18,13 @@ module VCAP::CloudController
       end
 
       describe '#build_app_lrp' do
-        let(:environment_variables) { ['name' => 'KEY', 'value' => 'running_value'] }
         before do
           environment = instance_double(Environment)
           allow(Environment).to receive(:new).with(process, {}).and_return(environment)
           allow(environment).to receive(:as_json).and_return(environment_variables)
         end
 
+        let(:environment_variables) { ['name' => 'KEY', 'value' => 'running_value'] }
         let(:port_environment_variables) do
           [
             ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'PORT', value: '4444'),
@@ -316,28 +316,6 @@ module VCAP::CloudController
               app_lrp = builder.build_app_lrp
               expect(app_lrp.PlacementTags).to eq []
             end
-          end
-
-          context 'when a process has a sidecar' do
-
-            let!(:sidecar) { SidecarModel.make(app: app_model, name: 'my_sidecar', command: 'athenz') }
-            let!(:sidecar_process_type) { SidecarProcessTypeModel.make(sidecar: sidecar, type: 'web' ) }
-
-            it 'includes the sidecar process as a codependent run action' do
-              lrp = builder.build_app_lrp
-
-              actions = lrp.action.codependent_action.actions.map(&:run_action)
-              expect(actions).to include(::Diego::Bbs::Models::RunAction.new(
-                  user:            'lrp-action-user',
-                  path:            '/tmp/lifecycle/launcher',
-                  args:            ['app', 'athenz'],
-                  resource_limits: ::Diego::Bbs::Models::ResourceLimits.new(nofile: expected_file_descriptor_limit),
-                  env:             expected_action_environment_variables,
-                  #log_source: 'CELL/SSHD',
-                )
-              )
-            end
-
           end
 
           context 'when a volume mount is provided' do
@@ -800,28 +778,6 @@ module VCAP::CloudController
                 host_fingerprint: ssh_key.fingerprint
               }))
             end
-
-            it 'includes the ssh daemon process as a codependent run action' do
-              lrp = builder.build_app_lrp
-
-              actions = lrp.action.codependent_action.actions.map(&:run_action)
-              expect(actions).to include(
-                ::Diego::Bbs::Models::RunAction.new(
-                  user:            'lrp-action-user',
-                  path:            '/tmp/lifecycle/diego-sshd',
-                  args:            [
-                    '-address=0.0.0.0:2222',
-                    "-hostKey=#{ssh_key.private_key}",
-                    "-authorizedKey=#{ssh_key.authorized_key}",
-                    '-inheritDaemonEnv',
-                    '-logLevel=fatal',
-                  ],
-                  resource_limits: ::Diego::Bbs::Models::ResourceLimits.new(nofile: expected_file_descriptor_limit),
-                  env:             expected_action_environment_variables,
-                  log_source: 'CELL/SSHD',
-                )
-              )
-            end
           end
 
           context 'when the same builder is used twice' do
@@ -830,41 +786,6 @@ module VCAP::CloudController
               expect(lrp.action).to eq(expected_action)
               lrp2 = builder.build_app_lrp
               expect(lrp2.action).to eq(expected_action)
-            end
-          end
-
-          describe 'platform options' do
-            let(:platform_options) do
-              [
-                ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'VCAP_PLATFORM_OPTIONS', value: '{"credhub-uri":"credhub.place:port"}')
-              ]
-            end
-
-            let(:expected_action_environment_variables) do
-              [
-                ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'PORT', value: '4444'),
-                ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'KEY', value: 'running_value'),
-                ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'VCAP_PLATFORM_OPTIONS', value: '{"credhub-uri":"credhub.place:port"}'),
-              ]
-            end
-
-            let(:expected_app_run_action) do
-              ::Diego::Bbs::Models::Action.new(
-                run_action: ::Diego::Bbs::Models::RunAction.new(
-                  path:            '/tmp/lifecycle/launcher',
-                  args:            ['app', command, execution_metadata],
-                  log_source:      'APP/PROC/WEB',
-                  resource_limits: ::Diego::Bbs::Models::ResourceLimits.new(nofile: expected_file_descriptor_limit),
-                  env:             expected_action_environment_variables,
-                  user:            'lrp-action-user',
-                )
-              )
-            end
-
-            it 'passes the VCAP_PLATFORM_OPTIONS environment variable to the launcher' do
-              lrp = builder.build_app_lrp
-
-              expect(lrp.action).to eq(expected_action)
             end
           end
         end
@@ -1032,17 +953,6 @@ module VCAP::CloudController
             end
           end
 
-          context 'when FileDescriptors is 0' do
-            before { process.file_descriptors = 0 }
-            let(:expected_file_descriptor_limit) { DEFAULT_FILE_DESCRIPTOR_LIMIT }
-
-            it 'uses the default File Descriptor Limit on the first run actions resource limits' do
-              lrp = builder.build_app_lrp
-              expect(lrp.action).to eq(expected_action)
-              expect(lrp.monitor).to eq(expected_monitor_action)
-            end
-          end
-
           context 'when a volume mount is provided' do
             let(:service_instance) { ManagedServiceInstance.make space: app_model.space }
             let(:multiple_volume_mounts) do
@@ -1113,102 +1023,6 @@ module VCAP::CloudController
                 private_key:      ssh_key.private_key,
                 host_fingerprint: ssh_key.fingerprint,
               }))
-            end
-
-            it 'includes the ssh daemon run action' do
-              lrp = builder.build_app_lrp
-
-              actions = lrp.action.codependent_action.actions.map(&:run_action)
-              expect(actions).to include(
-                ::Diego::Bbs::Models::RunAction.new(
-                  user:            'lrp-action-user',
-                  path:            '/tmp/lifecycle/diego-sshd',
-                  args:            [
-                    '-address=0.0.0.0:2222',
-                    "-hostKey=#{ssh_key.private_key}",
-                    "-authorizedKey=#{ssh_key.authorized_key}",
-                    '-inheritDaemonEnv',
-                    '-logLevel=fatal',
-                  ],
-                  resource_limits: ::Diego::Bbs::Models::ResourceLimits.new(nofile: expected_file_descriptor_limit),
-                  env:             expected_action_environment_variables,
-                  log_source: 'CELL/SSHD',
-                )
-              )
-            end
-          end
-
-          describe 'platform options' do
-            context 'when platform options are present' do
-              let(:platform_options) do
-                [
-                  ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'VCAP_PLATFORM_OPTIONS', value: '{"credhub-uri":"credhub.place:port"}')
-                ]
-              end
-
-              let(:expected_action_environment_variables) do
-                [
-                  ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'PORT', value: '4444'),
-                  ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'KEY', value: 'running_value'),
-                  ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'VCAP_PLATFORM_OPTIONS', value: '{"credhub-uri":"credhub.place:port"}')
-                ]
-              end
-
-              let(:expected_app_run_action) do
-                ::Diego::Bbs::Models::Action.new(
-                  run_action: ::Diego::Bbs::Models::RunAction.new(
-                    path:            '/tmp/lifecycle/launcher',
-                    args:            ['app', command, execution_metadata],
-                    log_source:      'APP/PROC/WEB',
-                    resource_limits: ::Diego::Bbs::Models::ResourceLimits.new(nofile: expected_file_descriptor_limit),
-                    env:             expected_action_environment_variables,
-                    user:            'lrp-action-user',
-                  )
-                )
-              end
-
-              before do
-                TestConfig.override(credhub_api: { internal_url: 'http:credhub.capi.land:8844' })
-              end
-
-              it 'passes the VCAP_PLATFORM_OPTIONS environment variable to the launcher' do
-                lrp = builder.build_app_lrp
-
-                expect(lrp.action).to eq(expected_action)
-              end
-            end
-
-            context 'when platform options are not present' do
-              let(:platform_options) { [] }
-
-              let(:expected_action_environment_variables) do
-                [
-                  ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'PORT', value: '4444'),
-                  ::Diego::Bbs::Models::EnvironmentVariable.new(name: 'KEY', value: 'running_value'),
-                ]
-              end
-
-              let(:expected_app_run_action) do
-                ::Diego::Bbs::Models::Action.new(
-                  run_action: ::Diego::Bbs::Models::RunAction.new(
-                    path:            '/tmp/lifecycle/launcher',
-                    args:            ['app', command, execution_metadata],
-                    log_source:      'APP/PROC/WEB',
-                    resource_limits: ::Diego::Bbs::Models::ResourceLimits.new(nofile: expected_file_descriptor_limit),
-                    env:             expected_action_environment_variables,
-                    user:            'lrp-action-user',
-                  )
-                )
-              end
-
-              before do
-                TestConfig.override(credhub_api: nil)
-              end
-
-              it 'passes the VCAP_PLATFORM_OPTIONS environment variable to the launcher' do
-                lrp = builder.build_app_lrp
-                expect(lrp.action).to eq(expected_action)
-              end
             end
           end
         end

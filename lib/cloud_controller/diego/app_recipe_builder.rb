@@ -85,7 +85,7 @@ module VCAP::CloudController
           trusted_system_certificates_path: RUNNING_TRUSTED_SYSTEM_CERT_PATH,
           network:                          generate_network,
           cpu_weight:                       TaskCpuWeightCalculator.new(memory_in_mb: process.memory).calculate,
-          action:                           MainLRPActionBuilder.build(process, desired_lrp_builder),
+          action:                           MainLRPActionBuilder.build(process, desired_lrp_builder, ssh_key),
           monitor:                          generate_monitor_action(desired_lrp_builder),
           root_fs:                          desired_lrp_builder.root_fs,
           setup:                            desired_lrp_builder.setup,
@@ -225,7 +225,6 @@ module VCAP::CloudController
       def generate_network
         Protocol::ContainerNetworkInfo.new(process.app, Protocol::ContainerNetworkInfo::APP).to_bbs_network
       end
-
     end
   end
 end
