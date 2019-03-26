@@ -31,7 +31,9 @@ module VCAP::CloudController
     private
 
     def bits_path_or_resources_presence
-      unless bits_path || resources
+      return if bits_path
+
+      unless resources && !resources.empty?
         errors.add(:base, 'Upload must include either resources or bits')
       end
     end
