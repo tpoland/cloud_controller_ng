@@ -1,5 +1,6 @@
 Sequel.migration do
-  change do
+  up do
+    drop_table?(:org_labels)
     create_table(:org_labels) do
       VCAP::Migration.common(self)
 
@@ -12,5 +13,9 @@ Sequel.migration do
       index [:org_guid], name: :fk_org_labels_org_guid_index
       index [:key_prefix, :key_name, :value], name: :org_labels_compound_index
     end
+  end
+
+  down do
+    drop_table?(:org_labels)
   end
 end

@@ -1,5 +1,6 @@
 Sequel.migration do
-  change do
+  up do
+    drop_table?(:app_labels)
     create_table(:app_labels) do
       VCAP::Migration.common(self)
 
@@ -12,5 +13,9 @@ Sequel.migration do
       index [:app_guid], name: :fk_app_labels_app_guid_index
       index [:key_prefix, :key_name, :value], name: :app_labels_compound_index
     end
+  end
+
+  down do
+    drop_table?(:app_labels)
   end
 end

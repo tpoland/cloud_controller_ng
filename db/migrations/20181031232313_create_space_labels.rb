@@ -1,5 +1,6 @@
 Sequel.migration do
-  change do
+  up do
+    drop_table?(:space_labels)
     create_table(:space_labels) do
       VCAP::Migration.common(self)
 
@@ -12,5 +13,8 @@ Sequel.migration do
       index [:space_guid], name: :fk_space_labels_space_guid_index
       index [:key_prefix, :key_name, :value], name: :space_labels_compound_index
     end
+  end
+  down do
+    drop_table?(:space_labels)
   end
 end
