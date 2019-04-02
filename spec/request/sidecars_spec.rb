@@ -2,8 +2,8 @@ require 'spec_helper'
 
 RSpec.describe 'Sidecars' do
   let(:app_model) { VCAP::CloudController::AppModel.make }
-  let(:user_header) { headers_for(user) }
   let(:user) { VCAP::CloudController::User.make }
+  let(:user_header) { headers_for(user) }
 
   before do
     app_model.space.organization.add_user(user)
@@ -52,6 +52,51 @@ RSpec.describe 'Sidecars' do
         post "/v3/apps/#{app_model.guid}/sidecars", sidecar_params.to_json, user_header
         delete "/v3/apps/#{app_model.guid}", nil, user_header
         expect(last_response.status).to eq(202)
+      end
+    end
+  end
+
+  describe 'PATCH /v3/apps/:guid/sidecars' do
+    let!(:sidecar) { VCAP::CloudController::SidecarModel.make(name: "My sidecar", command: "rackdown", app: app_model) }
+    let!(:sidecar_process_type) do
+      VCAP::CloudController::SidecarProcessTypeModel.make(sidecar: sidecar, type: "other_worker", app_guid: app_model.guid)
+    end
+
+    let(:sidecar_params) {
+      {
+        name:          "my_sidecar_2",
+        command:       "rackup",
+        process_types: ["sidecar_process"]
+      }
+    }
+
+    it 'updates sidecar' do
+      expected_response = {
+        'guid' => sidecar.guid,
+        'name' => 'my_sidecar_2',
+        'command' => 'rackup',
+        'process_types' => ['sidecar_process'],
+        'created_at' => iso8601,
+        'updated_at' => iso8601,
+        'relationships' => {
+          'app' => {
+            'data' => {
+              'guid' => app_model.guid
+            }
+          }
+        }
+      }
+      patch "/v3/sidecars/#{sidecar.guid}", sidecar_params.to_json, user_header
+
+      expect(last_response.status).to eq(200)
+      parsed_response = MultiJson.load(last_response.body)
+      expect(parsed_response).to be_a_response_like(expected_response)
+    end
+
+    describe 'when the sidecar is not found' do
+      it 'returns 404' do
+        patch "/v3/sidecars/doesntexist", sidecar_params.to_json, user_header
+        expect(last_response.status).to eq(404)
       end
     end
   end

@@ -31,9 +31,10 @@ Rails.application.routes.draw do
   get '/apps/:guid/revisions/deployed', to: 'app_revisions#deployed'
 
   # app sidecars
-  post '/apps/:guid/sidecars', to: 'sidecars#create'
-  get '/sidecars/:guid', to: 'sidecars#show'
   get '/processes/:process_guid/sidecars', to: 'sidecars#index'
+  get '/sidecars/:guid', to: 'sidecars#show'
+  post '/apps/:guid/sidecars', to: 'sidecars#create'
+  patch '/sidecars/:guid', to: 'sidecars#update'
 
   # revisions
   get '/revisions/:revision_guid/environment_variables', to: 'revisions#show_environment_variables'
