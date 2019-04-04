@@ -64,6 +64,7 @@ module VCAP::CloudController
           start_cloud_controller
 
           request_metrics = VCAP::CloudController::Metrics::RequestMetrics.new(statsd_client)
+          clear_request_metrics
           gather_periodic_metrics
 
           builder = RackAppBuilder.new
@@ -184,6 +185,11 @@ module VCAP::CloudController
       logger.info("configuring statsd server at #{@config.get(:statsd_host)}:#{@config.get(:statsd_port)}")
       Statsd.logger = Steno.logger('statsd.client')
       @statsd_client = Statsd.new(@config.get(:statsd_host), @config.get(:statsd_port))
+    end
+
+    def clear_request_metrics
+      statsd_admin = Statsd::Admin.new(@config.get(:statsd_host), 8126)
+      statsd_admin.delcounters "cc.*"
     end
 
     def collect_diagnostics

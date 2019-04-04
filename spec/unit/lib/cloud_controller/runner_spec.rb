@@ -111,6 +111,12 @@ module VCAP::CloudController
 
         expect(steno_configurer).to have_received(:configure).once
       end
+
+      it 'clears the statsd metrics before setting up request metrics' do
+        allow(subject).to receive(:clear_request_metrics)
+        subject.run!
+        expect(subject).to have_received(:clear_request_metrics)
+      end
     end
 
     describe '#stop!' do
