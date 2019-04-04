@@ -483,5 +483,19 @@ module VCAP::CloudController
         expect(lifecycle_data.reload.build).to eq(build)
       end
     end
+
+    describe 'decryption' do
+      it 'sets the encryption key label when saving an encrypted column' do
+        lifecycle_data.buildpacks = ['http://buildpack.example.com']
+        lifecycle_data.save
+        expect(lifecycle_data.reload.encryption_key_label).not_to be_empty
+      end
+
+      it 'sets the encryption key label when saving an encrypted column' do
+        lifecycle_data.stack = 'my-stack'
+        lifecycle_data.save
+        expect(lifecycle_data.reload.encryption_key_label).not_to be_empty
+      end
+    end
   end
 end

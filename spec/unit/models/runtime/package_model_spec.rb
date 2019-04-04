@@ -86,5 +86,21 @@ module VCAP::CloudController
         expect(package.annotations).to match_array([annotation])
       end
     end
+
+    describe 'encryption' do
+      let(:package) { PackageModel.make }
+
+      it 'sets the encryption key label when saving an encrypted column' do
+        package.docker_password = 'password'
+        package.save
+        expect(package.reload.encryption_key_label).not_to be_empty
+      end
+
+      it 'sets the encryption key label when saving an encrypted column' do
+        package.space = Space.make
+        package.save
+        expect(package.reload.encryption_key_label).not_to be_empty
+      end
+    end
   end
 end

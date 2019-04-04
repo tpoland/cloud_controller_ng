@@ -595,5 +595,25 @@ module VCAP::CloudController
         expect(ServiceBindingOperation.find(id: last_operation.id)).to be_nil
       end
     end
+
+    describe 'encryption' do
+      let(:space) { Space.make }
+      let(:app_model) { AppModel.make(space: space) }
+      let(:service_instance) { ServiceInstance.make(space: space) }
+      let(:binding) { ServiceBinding.new(app: app_model, type: ProcessTypes::WEB,
+                                         service_instance: service_instance)
+      }
+
+      it 'sets the encryption key label when saving an encrypted column' do
+        binding.credentials = 'password'
+        binding.save
+        expect(binding.reload.encryption_key_label).not_to be_empty
+      end
+      it 'sets the encryption key label even when not saving an encrypted column' do
+        expect {
+          binding.save
+        }.to raise_error(Sequel::NotNullConstraintViolation)
+      end
+    end
   end
 end

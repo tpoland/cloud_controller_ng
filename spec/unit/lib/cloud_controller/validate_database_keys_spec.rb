@@ -59,12 +59,11 @@ module VCAP::CloudController
 
       context 'when all rows have blank encryption_key_labels' do
         before do
-          app1.update(encryption_key_label: nil)
-          app2.update(encryption_key_label: '')
-          app3.update(encryption_key_label: nil)
-          historical_app.update(encryption_key_label: nil)
-          service_binding.update(encryption_key_label: '')
-          service_instance.update(encryption_key_label: nil)
+          [app1, app2, app3, historical_app].each do |app|
+            AppModel.where(guid: app.guid).update(encryption_key_label: '')
+          end
+          ServiceBinding.where(guid: service_binding.guid).update(encryption_key_label: nil)
+          ServiceInstance.where(guid: service_instance.guid).update(encryption_key_label: nil)
         end
 
         context 'when both the db_encryption_key and custom encryption_keys are present' do
@@ -143,9 +142,10 @@ module VCAP::CloudController
           app1.update(encryption_key_label: label1)
           app2.update(encryption_key_label: label2)
           app3.update(encryption_key_label: label3)
-          historical_app.update(encryption_key_label: '')
-          service_binding.update(encryption_key_label: nil)
-          service_instance.update(encryption_key_label: '')
+
+          AppModel.where(guid: historical_app.guid).update(encryption_key_label: '')
+          ServiceBinding.where(guid: service_binding.guid).update(encryption_key_label: nil)
+          ServiceInstance.where(guid: service_instance.guid).update(encryption_key_label: '')
         end
 
         context 'when both the db_encryption_key and all custom encryption_keys are present' do

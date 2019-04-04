@@ -110,6 +110,11 @@ module VCAP::CloudController
         expect(var_group.environment_json).to eq(long_env)
       end
 
+      it 'sets the encryption key label when saving an encrypted column' do
+        var_group = EnvironmentVariableGroup.make(name: 'buck')
+        expect(var_group.reload.encryption_key_label).to be_present
+      end
+
       describe 'changing iteration count' do
         it 'does not update the encryption_iterations field until after decrypting existing data' do
           allow(Encryptor).to receive(:pbkdf2_hmac_iterations).and_return(2048)
