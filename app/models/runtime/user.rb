@@ -52,7 +52,7 @@ module VCAP::CloudController
     add_association_dependencies spaces: :nullify
     add_association_dependencies managed_spaces: :nullify
 
-    export_attributes :admin, :active, :default_space_guid
+    export_attributes :admin, :active, :default_space_guid, :is_client
 
     import_attributes :guid, :admin, :active,
                       :organization_guids,
@@ -95,6 +95,10 @@ module VCAP::CloudController
 
     def active?
       active
+    end
+
+    def is_client?
+      is_client
     end
 
     def remove_spaces(space)

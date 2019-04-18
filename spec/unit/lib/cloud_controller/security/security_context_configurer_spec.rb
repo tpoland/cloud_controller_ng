@@ -46,6 +46,23 @@ module VCAP::CloudController
               configurer.configure(auth_token)
               expect(SecurityContext.current_user).to eq(user)
             end
+
+            it 'records that the user is not a client' do
+              configurer.configure(auth_token)
+              expect(SecurityContext.current_user.is_client?).not_to be_nil
+              expect(SecurityContext.current_user.is_client?).to be_falsey
+            end
+          end
+
+          context 'when the specified user already exists as a client' do
+            let!(:user) {User.make(guid: user_id, is_client: true)}
+
+            it 'sets invalid token' do
+              configurer.configure(auth_token)
+              expect(SecurityContext.current_user).to be_nil
+              expect(SecurityContext.token).to eq(:invalid_token)
+              expect(SecurityContext.auth_token).to eq(auth_token)
+            end
           end
 
           context 'when the specified user does not exist' do
@@ -55,6 +72,8 @@ module VCAP::CloudController
               }.to change { User.count }.by(1)
               expect(SecurityContext.current_user.guid).to eq(user_id)
               expect(SecurityContext.current_user).to be_active
+              expect(SecurityContext.current_user.is_client?).not_to be_nil
+              expect(SecurityContext.current_user.is_client?).to be_falsey
             end
           end
 
@@ -78,6 +97,11 @@ module VCAP::CloudController
           before do
             allow(CloudController::DependencyLocator.instance).to receive(:uaa_client).
               and_return(uaa_client)
+          end
+
+          it 'records that the user is a client' do
+            configurer.configure(auth_token)
+            expect(SecurityContext.current_user.is_client?).to be_truthy
           end
 
           it 'uses the client_id to set the user_id' do
@@ -117,6 +141,17 @@ module VCAP::CloudController
                 configurer.configure(auth_token)
                 expect(SecurityContext.current_user).to eq(user)
               end
+            end
+          end
+
+          context 'theres a user with the same id' do
+            let!(:user) {User.make(guid: user_id, is_client: false)}
+
+            it 'sets invalid token without talking to uaa' do
+              configurer.configure(auth_token)
+              expect(SecurityContext.current_user).to be_nil
+              expect(SecurityContext.token).to eq(:invalid_token)
+              expect(SecurityContext.auth_token).to eq(auth_token)
             end
           end
         end
