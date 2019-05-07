@@ -18,7 +18,12 @@ module VCAP::CloudController
           blob = blobstore.blob(key)
           if blob && same_blob(blob)
             logger.info("Deleting '#{key}' from blobstore '#{blobstore_name}'")
-            blobstore.delete_blob(blob)
+            begin
+              blobstore.delete_blob(blob)
+            rescue => e
+              logger.error("Error with blobstore: #{e.class} - #{e.message}")
+              raise CloudController::Blobstore::BlobstoreError.new(e.message)
+            end
           end
         end
 

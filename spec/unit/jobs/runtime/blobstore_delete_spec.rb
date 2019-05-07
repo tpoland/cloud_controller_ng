@@ -67,6 +67,15 @@ module VCAP::CloudController
           expect(blobstore).to receive(:blob).and_return(nil)
           job.perform
         end
+
+        context 'when the blobstore throws an exception' do
+          it 'converts the exception' do
+            expect(blobstore).to receive(:delete_blob).and_raise(StandardError.new("spuds"))
+            expect {
+              job.perform
+            }.to raise_error(CloudController::Blobstore::BlobstoreError, /spuds/)
+          end
+        end
       end
 
       it 'knows its job name' do
